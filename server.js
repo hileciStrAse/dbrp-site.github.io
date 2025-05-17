@@ -2,9 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 5001;
+const activitiesFile = './activities.json';
 
 // CORS ayarları
 app.use(cors());
@@ -59,6 +61,31 @@ app.post('/api/contact', async (req, res) => {
         console.error('Email göndərilərkən xəta:', err);
         res.status(500).json({ success: false, error: 'Email göndərilə bilmədi.' });
     }
+});
+
+// Fəaliyyətləri oxu
+app.get('/api/activities', (req, res) => {
+    if (fs.existsSync(activitiesFile)) {
+        const data = fs.readFileSync(activitiesFile, 'utf-8');
+        res.json(JSON.parse(data));
+    } else {
+        res.json([]);
+    }
+});
+
+// Yeni fəaliyyət əlavə et
+app.post('/api/activities', (req, res) => {
+    const { title, description, date, icon } = req.body;
+    if (!title || !description || !date || !icon) {
+        return res.status(400).json({ success: false, error: 'Bütün sahələr doldurulmalıdır.' });
+    }
+    let activities = [];
+    if (fs.existsSync(activitiesFile)) {
+        activities = JSON.parse(fs.readFileSync(activitiesFile, 'utf-8'));
+    }
+    activities.unshift({ id: Date.now().toString(), title, description, date, icon });
+    fs.writeFileSync(activitiesFile, JSON.stringify(activities, null, 2));
+    res.json({ success: true });
 });
 
 // Hata yakalama middleware'i
