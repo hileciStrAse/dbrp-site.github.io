@@ -898,20 +898,17 @@
             }
         }
 
-        // Load activities from localStorage
-        function loadActivities() {
-            return JSON.parse(localStorage.getItem('activities')) || [
-                { id: '1', title: 'Yeni biznes açıldı', description: 'İstifadəçi biznes açdı.', date: '2025-05-17', icon: 'fas fa-store' },
-                { id: '2', title: 'Balans yeniləndi', description: 'Admin balans əlavə etdi.', date: '2025-05-16', icon: 'fas fa-money-bill' }
-            ];
+        // Load activities from server
+        async function loadActivities() {
+            const res = await fetch('/api/activities');
+            return await res.json();
         }
 
         // Display activities
-        function displayActivities() {
+        async function displayActivities() {
             const activityList = document.getElementById('activityList');
             activityList.innerHTML = '';
-            const activities = loadActivities();
-
+            const activities = await loadActivities();
             activities.forEach(activity => {
                 const li = document.createElement('li');
                 li.className = 'activity-item';
@@ -934,6 +931,7 @@
             fetchDashboardData();
             setInterval(fetchDashboardData, 30000);
             displayActivities();
+            setInterval(displayActivities, 30000);
         });
     </script>
 </body>
