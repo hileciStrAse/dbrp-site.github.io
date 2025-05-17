@@ -818,7 +818,7 @@
             }
 
             try {
-                const res = await fetch('/api/activities', {
+                const res = await fetch('/api/activities.html', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title, description, date, icon })
