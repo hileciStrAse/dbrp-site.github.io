@@ -705,7 +705,7 @@
                     <input type="hidden" id="activityId">
                 </div>
                 <div class="form-actions">
-                    <button class="btn" id="submitButton" onclick="saveActivity()">Fəaliyyət Əlavə Et</button>
+                    <button class="btn" id="submitButton" onclick="addActivity()">Fəaliyyət Əlavə Et</button>
                     <button class="btn btn-danger" id="cancelButton" onclick="resetForm()" style="display: none;">Ləğv et</button>
                 </div>
             </div>
@@ -805,9 +805,8 @@
             });
         });
 
-        // Save or update activity
-        function saveActivity() {
-            const id = document.getElementById('activityId').value;
+        // Add activity
+        async function addActivity() {
             const title = document.getElementById('activityTitle').value;
             const description = document.getElementById('activityDescription').value;
             const date = document.getElementById('activityDate').value;
@@ -818,29 +817,29 @@
                 return;
             }
 
-            const activities = JSON.parse(localStorage.getItem('activities')) || [];
-            if (id) {
-                // Update existing activity
-                const index = activities.findIndex(activity => activity.id === id);
-                if (index !== -1) {
-                    activities[index] = { id, title, description, date, icon };
+            try {
+                const res = await fetch('/api/activities', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description, date, icon })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // Clear form
+                    document.getElementById('activityTitle').value = '';
+                    document.getElementById('activityDescription').value = '';
+                    document.getElementById('activityDate').value = '';
+                    document.getElementById('activityIcon').value = 'fas fa-bell';
+                    iconOptions.forEach(opt => opt.classList.remove('selected'));
+                    document.querySelector('.icon-option[data-icon="fas fa-bell"]').classList.add('selected');
+                    iconPreview.innerHTML = `<i class="fas fa-bell"></i> Seçilmiş: Bildiriş`;
+                    alert('Fəaliyyət uğurla əlavə edildi!');
+                } else {
+                    alert('Xəta: ' + (data.error || 'Fəaliyyət əlavə edilə bilmədi.'));
                 }
-            } else {
-                // Add new activity
-                const newActivity = {
-                    id: Date.now().toString(),
-                    title,
-                    description,
-                    date,
-                    icon
-                };
-                activities.push(newActivity);
+            } catch (err) {
+                alert('Xəta baş verdi. Zəhmət olmasa bir az sonra yenidən cəhd edin.');
             }
-
-            localStorage.setItem('activities', JSON.stringify(activities));
-            resetForm();
-            loadActivities();
-            alert(id ? 'Fəaliyyət uğurla yeniləndi!' : 'Fəaliyyət uğurla əlavə edildi!');
         }
 
         // Edit activity
