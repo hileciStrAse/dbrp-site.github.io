@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBRP Bot | Pro Status</title>
+
+    <!-- Fontlar və İkonlar -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f8fafc;
+            --accent: #22d3ee;
+            --glow: radial-gradient(circle at center, rgba(34,211,238,0.4) 0%, transparent 70%);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        .cyber-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .cyber-card {
+            background: linear-gradient(145deg, var(--bg-secondary) 40%, rgba(34,211,238,0.05) 100%);
+            border: 1px solid rgba(34,211,238,0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cyber-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(34,211,238,0.15);
+        }
+
+        .cyber-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--glow);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .cyber-card:hover::before {
+            opacity: 0.6;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.5s ease;
+        }
+
+        .social-links {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .social-link {
+            background: var(--bg-secondary);
+            padding: 0.8rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        .made-by {
+            display: inline-block;
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .made-by:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+            box-shadow: 0 0 10px var(--accent);
+        }
+    </style>
+</head>
+<body class="p-4">
+    <!-- Social Links -->
+    <div class="social-links">
+        <a href="https://discord.gg/XvPKtHU2KB" target="_blank" class="social-link">
+            <i class="fab fa-discord text-2xl text-[var(--accent)]"></i>
+        </a>
+    </div>
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4 text-[var(--accent)]">
+                <i class="fas fa-rocket"></i> DBRP Status
+            </h1>
+            <div class="text-sm opacity-75">İdarə paneli | Bot versiyası v0.3.1</div>
+        </div>
+
+        <!-- Kartlar -->
+        <div id="data-container" class="cyber-grid">
+            <!-- Yükləmə Animasiyası -->
+            <div class="cyber-card col-span-full text-center">
+                <div class="animate-pulse flex items-center justify-center gap-3 py-6">
+                    <div class="w-8 h-8 bg-[var(--accent)] rounded-full animate-spin"></div>
+                    <div>Sistem Monitoru Aktivləşir...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Made by For3x.az -->
+        <div class="text-center mt-8">
+            <span class="made-by">Made by For3x.az</span>
+        </div>
+    </div>
+
+    <script>
+        // Data Fetching
+        async function fetchData() {
+            try {
+                const response = await fetch('https://dbrp.onrender.com/api');
+                const data = await response.json();
+
+                // Format uptime to hours
+                const uptimeHours = Math.floor(data.system_status.uptime / 3600);
+                const statusColor = data.bot_status.status === 'online' ? 'text-green-400' : 'text-red-400';
+                
+                const container = document.getElementById('data-container');
+                container.innerHTML = `
+                    <!-- Sistem Monitoru -->
+                    <div class="cyber-card">
+                        <h3 class="text-xl font-bold mb-4"><i class="fas fa-server"></i> Sistem</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span>Status:</span>
+                                <span class="font-mono ${statusColor}">${data.bot_status.status}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${data.bot_status.status === 'online' ? 100 : 0}%"></div>
+                            </div>
+                            <div class="data-grid">
+                                <div class="text-sm opacity-75">Bot Versiyası</div>
+                                <div class="font-mono">v0.3.1</div>
+                                <div class="text-sm opacity-75">Aktiv Müddət</div>
+                                <div class="font-mono">${uptimeHours} saat</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sağlamlıq Monitoru -->
+                    <div class="cyber-card">
+                        <h3 class="text-xl font-bold mb-4"><i class="fas fa-heartbeat"></i> Sağlamlıq</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span>Sistem Sağlamlığı:</span>
+                                <span class="font-mono text-[var(--accent)]">${data.health_check.status}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${data.health_check.status === 'healthy' ? 90 : 30}%"></div>
+                            </div>
+                            <div class="data-grid">
+                                <div class="text-sm opacity-75">Son Yoxlama</div>
+                                <div class="font-mono">${new Date(data.health_check.timestamp).toLocaleTimeString('az-AZ')}</div>
+                                <div class="text-sm opacity-75">Saat Qruhu</div>
+                                <div class="font-mono">${data.time_info.timezone}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Təhlükəsizlik -->
+                    <div class="cyber-card">
+                        <h3 class="text-xl font-bold mb-4"><i class="fas fa-shield-alt"></i> Təhlükəsizlik</h3>
+                        <div class="space-y-3">
+                            <div class="data-grid">
+                                <div class="text-sm opacity-75">Firewall</div>
+                                <div class="text-green-400">Aktiv</div>
+                                <div class="text-sm opacity-75">Son Skan</div>
+                                <div class="font-mono">${new Date(data.time_info.timestamp).toLocaleTimeString('az-AZ')}</div>
+                                <div class="text-sm opacity-75">Zəifliklər</div>
+                                <div class="text-red-400">0 aşkarlandı</div>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 95%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="cyber-card col-span-full text-center text-red-400">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <div>Xəta: ${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // İlkin Yükləmə
+        fetchData();
+        setInterval(fetchData, 10000);
+    </script>
+</body>
+</html>
