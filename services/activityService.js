@@ -1,11 +1,14 @@
-const { Activity } = require('../models/Activity');
 const { Op } = require('sequelize');
 
 class ActivityService {
+    constructor(ActivityModel) {
+        this.Activity = ActivityModel;
+    }
+
     // Yeni fəaliyyət əlavə etmək
-    static async logActivity(data) {
+    async logActivity(data) {
         try {
-            const activity = await Activity.create(data);
+            const activity = await this.Activity.create(data);
             return activity;
         } catch (error) {
             console.error('Fəaliyyət qeyd edilərkən xəta:', error);
@@ -14,9 +17,9 @@ class ActivityService {
     }
 
     // Server üçün fəaliyyətləri əldə etmək
-    static async getServerActivities(serverId, limit = 20, skip = 0) {
+    async getServerActivities(serverId, limit = 20, skip = 0) {
         try {
-            const activities = await Activity.findAll({
+            const activities = await this.Activity.findAll({
                 where: { serverId },
                 order: [['timestamp', 'DESC']],
                 limit: parseInt(limit),
@@ -30,9 +33,9 @@ class ActivityService {
     }
 
     // İstifadəçi üçün fəaliyyətləri əldə etmək
-    static async getUserActivities(userId, serverId, limit = 50) {
+    async getUserActivities(userId, serverId, limit = 50) {
         try {
-            const activities = await Activity.findAll({
+            const activities = await this.Activity.findAll({
                 where: { userId, serverId },
                 order: [['timestamp', 'DESC']],
                 limit: parseInt(limit)
@@ -45,10 +48,10 @@ class ActivityService {
     }
 
     // Müəyyən bir fəaliyyət növü üçün statistikaları əldə etmək
-    static async getActivityStats(serverId, action, timeRange = '24h') {
+    async getActivityStats(serverId, action, timeRange = '24h') {
         try {
             const timeFilter = this.getTimeFilter(timeRange);
-            return await Activity.aggregate([
+            return await this.Activity.aggregate([
                 {
                     $match: {
                         serverId,
@@ -78,12 +81,12 @@ class ActivityService {
     }
 
     // Köhnə fəaliyyətləri təmizləmək
-    static async cleanupOldActivities(days = 30) {
+    async cleanupOldActivities(days = 30) {
         try {
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - days);
             
-            await Activity.destroy({
+            await this.Activity.destroy({
                 where: {
                     timestamp: {
                         [Op.lt]: cutoffDate
@@ -97,7 +100,7 @@ class ActivityService {
     }
 
     // Vaxt filtiri yaratmaq
-    static getTimeFilter(timeRange) {
+    getTimeFilter(timeRange) {
         const now = new Date();
         switch (timeRange) {
             case '1h':
@@ -114,9 +117,9 @@ class ActivityService {
     }
 
     // Kanal üzrə fəaliyyətləri əldə etmək
-    static async getChannelActivities(channelId, serverId, limit = 50) {
+    async getChannelActivities(channelId, serverId, limit = 50) {
         try {
-            const activities = await Activity.findAll({
+            const activities = await this.Activity.findAll({
                 where: { channelId, serverId },
                 order: [['timestamp', 'DESC']],
                 limit: parseInt(limit)
@@ -129,10 +132,10 @@ class ActivityService {
     }
 
     // Server üzrə fəaliyyət statistikalarını əldə etmək
-    static async getServerStats(serverId, timeRange = '24h') {
+    async getServerStats(serverId, timeRange = '24h') {
         try {
             const timeFilter = this.getTimeFilter(timeRange);
-            return await Activity.aggregate([
+            return await this.Activity.aggregate([
                 {
                     $match: {
                         serverId,
@@ -162,10 +165,10 @@ class ActivityService {
     }
 
     // İstifadəçi üzrə fəaliyyət statistikalarını əldə etmək
-    static async getUserStats(userId, serverId, timeRange = '24h') {
+    async getUserStats(userId, serverId, timeRange = '24h') {
         try {
             const timeFilter = this.getTimeFilter(timeRange);
-            return await Activity.aggregate([
+            return await this.Activity.aggregate([
                 {
                     $match: {
                         userId,
@@ -194,9 +197,9 @@ class ActivityService {
     }
 
     // Bütün fəaliyyətləri silmək
-    static async deleteAllActivities() {
+    async deleteAllActivities() {
         try {
-            await Activity.destroy({
+            await this.Activity.destroy({
                 where: {},
                 truncate: true
             });
