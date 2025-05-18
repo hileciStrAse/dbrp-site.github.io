@@ -229,7 +229,13 @@
         <!-- Bağlı İstifadəçilər -->
         <div class="admin-section">
             <h2>Bağlı İstifadəçilər</h2>
-            <ul class="list-group" id="connectedUsersList"></ul>
+            <div class="connected-users-search">
+                <input type="text" id="discordIdSearchInput" placeholder="Discord ID ilə axtarış">
+                <button id="searchUserButton">Axtar</button>
+            </div>
+            <ul id="connectedUsersList">
+                <!-- Connected users will be listed here -->
+            </ul>
         </div>
 
     </div>
@@ -317,7 +323,9 @@
         async function loadActivities() {
             try {
                 // Yalnız son 20 fəaliyyəti yüklə
-                const res = await fetch(API_URL + '/activities?limit=20');
+                // Server ID-ni sorğuya əlavə edin (Burada hansı server ID-sinin istifadə olunacağını müəyyən etməlisiniz)
+                const serverId = 'YOUR_SERVER_ID'; // <!---- Burada YOUR_SERVER_ID yerinə botunuzun fəaliyyətlərini görmək istədiyiniz serverin ID-sini yazın ---->
+                const res = await fetch(`${API_URL}/activities?limit=20&serverId=${serverId}`);
                 const activities = await res.json();
                 const activityList = document.getElementById('activityList');
                 activityList.innerHTML = ''; // Siyahını təmizlə
@@ -391,6 +399,48 @@
             loadActivities();
             loadConnectedUsers(); // Yeni: Bağlı istifadəçiləri yüklə
         });
+
+        document.getElementById('searchUserButton').addEventListener('click', fetchConnectedUsers);
+
+        async function fetchConnectedUsers() {
+            const discordId = document.getElementById('discordIdSearchInput').value;
+            let url = '/api/admin/connected-users';
+            if (discordId) {
+                url = `/api/admin/connected-users/search?discordId=${discordId}`;
+            }
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP xətası! Status: ${response.status}`);
+                }
+                const users = await response.json();
+                displayConnectedUsers(users);
+            } catch (error) {
+                console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
+                const usersList = document.getElementById('connectedUsersList');
+                usersList.innerHTML = '<li>İstifadəçilər yüklənərkən xəta baş verdi.</li>';
+            }
+        }
+
+        function displayConnectedUsers(users) {
+            const usersList = document.getElementById('connectedUsersList');
+            usersList.innerHTML = ''; // Clear current list
+
+            if (users.length === 0) {
+                usersList.innerHTML = '<li>İstifadəçi tapılmadı.</li>';
+                return;
+            }
+
+            users.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `Discord ID: ${user.discordId}, Username: ${user.discordUsername || 'N/A'}`;
+                usersList.appendChild(listItem);
+            });
+        }
+
+        // Load users when the page loads
+        fetchConnectedUsers();
 
     </script>
 </body>
