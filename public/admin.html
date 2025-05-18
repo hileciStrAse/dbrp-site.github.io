@@ -195,10 +195,61 @@
             }
         }
 
+        /* Yükləmə ekranı stilləri */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--border);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: var(--light);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .content {
+            display: none; /* Başlanğıcda gizlədilir */
+        }
+
+        .content.loaded {
+            display: block; /* Yükləmə bitdikdən sonra göstərilir */
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Yükləmə ekranı -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Admin paneli yüklənir...</div>
+    </div>
+
+    <!-- Əsas məzmun -->
+    <div class="container content" id="mainContent">
         <h1>Admin Panel</h1>
 
         <!-- Elan İdarəetməsi -->
@@ -412,6 +463,9 @@
 
         // Səhifə yükləndikdə admin yoxlaması
         document.addEventListener('DOMContentLoaded', async () => {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const mainContent = document.getElementById('mainContent');
+            
             try {
                 const response = await fetch('/api/admin/check');
                 if (!response.ok) {
@@ -420,9 +474,15 @@
                 }
                 
                 // Admin yoxlaması uğurlu olduqda məlumatları yüklə
-                loadAnnouncements();
-                loadActivities();
-                loadConnectedUsers();
+                await Promise.all([
+                    loadAnnouncements(),
+                    loadActivities(),
+                    loadConnectedUsers()
+                ]);
+
+                // Yükləmə bitdikdən sonra
+                loadingScreen.style.display = 'none';
+                mainContent.classList.add('loaded');
             } catch (error) {
                 console.error('Admin yoxlama xətası:', error);
                 window.location.href = '/auth/discord';
