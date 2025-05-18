@@ -716,6 +716,35 @@
                 <ul class="activity-list" id="activityList"></ul>
             </div>
         </div>
+
+        <div class="admin-section">
+            <h3 class="section-title"><i class="fas fa-bullhorn"></i> Elan İdarəetməsi</h3>
+            <div class="announcement-form">
+                <div class="form-group">
+                    <label><i class="fas fa-heading"></i> Başlıq</label>
+                    <input type="text" id="announcementTitle" placeholder="Elan başlığı">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Mesaj</label>
+                    <textarea id="announcementMessage" placeholder="Elan mesajı"></textarea>
+                </div>
+                <button class="btn" onclick="addAnnouncement()">Elan Göndər</button>
+            </div>
+            
+            <div class="announcement-list">
+                <h4>Mövcud Elanlar</h4>
+                <div id="announcementList"></div>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3 class="section-title"><i class="fas fa-bell"></i> Fəaliyyət İdarəetməsi</h3>
+            <div class="activity-list">
+                <h4>Mövcud Fəaliyyətlər</h4>
+                <div id="activityList"></div>
+                <button class="btn btn-danger" onclick="clearAllActivities()">Bütün Fəaliyyətləri Sil</button>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -918,7 +947,108 @@
             }
         }
 
-        const publicVapidKey = 'BF_gMcKgs2qIU5L028tm1dM-GutD60RlEjAuqsZEjT9wudyvxrTCdUf_-ERupEtl_JeJMEw53i_t-MOVa_1b1AI';
+        // Duyuruları yükle ve göster
+        async function loadAnnouncements() {
+            const res = await fetch('/api/admin/announcements');
+            const announcements = await res.json();
+            const announcementList = document.getElementById('announcementList');
+            announcementList.innerHTML = '';
+            
+            announcements.forEach(announcement => {
+                const div = document.createElement('div');
+                div.className = 'announcement-item';
+                div.innerHTML = `
+                    <div class="announcement-content">
+                        <h5>${announcement.title}</h5>
+                        <p>${announcement.message}</p>
+                        <small>${announcement.date}</small>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteAnnouncement('${announcement.id}')">Sil</button>
+                `;
+                announcementList.appendChild(div);
+            });
+        }
+
+        // Duyuru sil
+        async function deleteAnnouncement(id) {
+            if (!confirm('Bu elanı silmək istədiyinizə əminsiniz?')) return;
+            
+            const res = await fetch(`/api/admin/announcements/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                loadAnnouncements();
+            } else {
+                alert('Elan silinərkən xəta baş verdi.');
+            }
+        }
+
+        // Faaliyetleri yükle ve göster
+        async function loadActivities() {
+            const res = await fetch('/api/activities');
+            const activities = await res.json();
+            const activityList = document.getElementById('activityList');
+            activityList.innerHTML = '';
+            
+            activities.forEach(activity => {
+                const div = document.createElement('div');
+                div.className = 'activity-item';
+                div.innerHTML = `
+                    <div class="activity-content">
+                        <div class="activity-icon">
+                            <i class="${activity.icon}"></i>
+                        </div>
+                        <div>
+                            <h5>${activity.title}</h5>
+                            <p>${activity.description}</p>
+                            <small>${activity.date}</small>
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteActivity('${activity.id}')">Sil</button>
+                `;
+                activityList.appendChild(div);
+            });
+        }
+
+        // Faaliyet sil
+        async function deleteActivity(id) {
+            if (!confirm('Bu fəaliyyəti silmək istədiyinizə əminsiniz?')) return;
+            
+            const res = await fetch(`/api/activities/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                loadActivities();
+            } else {
+                alert('Fəaliyyət silinərkən xəta baş verdi.');
+            }
+        }
+
+        // Tüm faaliyetleri sil
+        async function clearAllActivities() {
+            if (!confirm('Bütün fəaliyyətləri silmək istədiyinizə əminsiniz?')) return;
+            
+            const res = await fetch('/api/activities', {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                loadActivities();
+            } else {
+                alert('Fəaliyyətlər silinərkən xəta baş verdi.');
+            }
+        }
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAnnouncements();
+            loadActivities();
+        });
     </script>
 </body>
 </html>
