@@ -720,9 +720,58 @@
         .discord-btn i {
             font-size: 1.2em;
         }
+
+        /* Authentication Status styles */
+        .auth-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 110;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 8px 15px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auth-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .auth-link:hover {
+            color: var(--secondary);
+        }
+
+        .auth-separator {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .auth-status {
+                position: static;
+                margin: 20px auto;
+                width: fit-content;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Authentication Status / User Info -->
+    <div class="auth-status" id="authStatus">
+        <a href="#" id="loginLink" class="auth-link">Giriş</a>
+        <span class="auth-separator">|</span>
+        <a href="#" id="registerLink" class="auth-link">Qeydiyyat</a>
+        <!-- Logged in state will be added later -->
+    </div>
+
     <!-- Navigation -->
     <nav id="sidebar">
         <div class="logo">
@@ -821,7 +870,7 @@
                 <div class="bot-name" id="botProfileName"></div>
                 <div class="bot-status"><span class="status-online" id="botProfileStatusDot"></span> <span id="botProfileStatus"></span></div>
                 <div class="bot-description" id="botProfileDescription"></div>
-                <a href="/kontakt.html" class="btn">Əlaqə</a>
+                <a href="/kontakt" class="btn">Əlaqə</a>
                 <a href="https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds" class="btn discord-btn"><i class="fab fa-discord"></i> Discord ilə Giriş</a>
             </div>
             <div class="bot-stats">
