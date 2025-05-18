@@ -11,6 +11,8 @@ const cookieParser = require('cookie-parser');
 const ActivityServiceClass = require('./services/activityService');
 const passport = require('passport');
 const { DiscordStrategy } = require('passport-discord');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 // Discord bot client instance (başqa fayldan ötürüləcək)
@@ -83,11 +85,36 @@ const Admin = require('./models/Admin')(sequelize, DataTypes);
 const ConnectedUser = require('./models/ConnectedUser')(sequelize, DataTypes);
 const Activity = require('./models/Activity')(sequelize, DataTypes);
 
+// ConnectedUser modelini yenilə: parol və is_verified sahələri əlavə et
+const UpdatedConnectedUser = sequelize.define('ConnectedUser', {
+    discordId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+    },
+    username: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    connectedAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+    },
+    password: {
+        type: DataTypes.STRING, // Hashed parol üçün
+        allowNull: true, // Hələ parol qoymayan Discord istifadəçiləri ola bilər
+    },
+    is_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false, // Başlanğıcda doğrulanmamış
+    },
+}, { timestamps: true });
+
+// Model təyinatını dəyişdir
+ConnectedUser.init(UpdatedConnectedUser.getAttributes(), { sequelize, modelName: 'ConnectedUser' });
+
 // ActivityService instansiyasını yaradın və Activity modelini ötürün
 const ActivityService = new ActivityServiceClass(Activity);
-
-// HTTP sorğuları üçün (node-fetch uyğunluğu üçün)
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 // Verilənlər bazasını sinxronizasiya et
 async function syncDatabase() {
@@ -314,6 +341,89 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
     } catch (error) {
         console.error('Elan silinərkən xəta:', error);
         res.status(500).json({ success: false, error: 'Elan silinərkən xəta baş verdi.' });
+    }
+});
+
+// Yeni Qeydiyyat Endpointi
+app.post('/api/register', async (req, res) => {
+    const { discordId, username, password } = req.body;
+
+    if (!discordId || !username || !password) {
+        return res.status(400).json({ success: false, message: 'Discord ID, istifadəçi adı və şifrə tələb olunur.' });
+    }
+
+    try {
+        // İstifadəçi artıq mövcuddurmu yoxla
+        const existingUser = await ConnectedUser.findOne({ where: { discordId: discordId } });
+        if (existingUser) {
+            // Əgər mövcuddursa və artıq şifrəsi varsa
+            if (existingUser.password) {
+                 return res.status(409).json({ success: false, message: 'Bu Discord ID artıq qeydiyyatdan keçib.' });
+            } else {
+                 // Əgər mövcuddursa, amma şifrəsi yoxdursa (Discord girişi ilə gəlibsə)
+                 // Şifrəsini yenilə
+                 const hashedPassword = await bcrypt.hash(password, 10);
+                 existingUser.username = username; // Adı da yeniləyə bilərik
+                 existingUser.password = hashedPassword;
+                 // Doğrulama statusunu burada true etmirik, ayrıca doğrulama addımı olacaq.
+                 await existingUser.save();
+                 return res.status(200).json({ success: true, message: 'Hesabınız yeniləndi, şifrə təyin edildi.' });
+            }
+        }
+
+        // Yeni istifadəçi yarat
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = await ConnectedUser.create({
+            discordId: discordId,
+            username: username,
+            password: hashedPassword,
+            is_verified: false, // Qeydiyyatdan sonra doğrulama tələb olunur
+        });
+
+        res.status(201).json({ success: true, message: 'Qeydiyyat uğurlu oldu. Zəhmət olmasa hesabınızı doğrulayın.' });
+
+    } catch (error) {
+        console.error('Qeydiyyat zamanı xəta:', error);
+        res.status(500).json({ success: false, message: 'Qeydiyyat zamanı server xətası baş verdi.' });
+    }
+});
+
+// Yeni Giriş Endpointi
+app.post('/api/login', async (req, res) => {
+    const { discordId, password } = req.body;
+
+    if (!discordId || !password) {
+        return res.status(400).json({ success: false, message: 'Discord ID və şifrə tələb olunur.' });
+    }
+
+    try {
+        // İstifadəçini Discord ID-yə görə tap
+        const user = await ConnectedUser.findOne({ where: { discordId: discordId } });
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'İstifadəçi tapılmadı.' });
+        }
+
+        // Şifrəni yoxla
+        const passwordMatch = await bcrypt.compare(password, user.password || ''); // user.password null ola bilər
+
+        if (!passwordMatch) {
+            return res.status(401).json({ success: false, message: 'Şifrə yanlışdır.' });
+        }
+
+        // Hesabın doğrulanıb olmadığını yoxla
+        if (!user.is_verified) {
+            return res.status(401).json({ success: false, message: 'Hesabınız doğrulanmayıb. Zəhmət olmasa, hesabınızı doğrulayın.' });
+        }
+
+        // Giriş uğurlu oldu (hələlik sessiyaya yazmırıq)
+        // Sessiya idarəetməsi növbəti addımda əlavə olunacaq
+        console.log(`İstifadəçi ${user.username} (${user.discordId}) uğurla giriş etdi.`);
+        res.json({ success: true, message: 'Giriş uğurlu oldu.', user: { id: user.discordId, username: user.username } });
+
+    } catch (error) {
+        console.error('Giriş zamanı xəta:', error);
+        res.status(500).json({ success: false, message: 'Giriş zamanı server xətası baş verdi.' });
     }
 });
 
