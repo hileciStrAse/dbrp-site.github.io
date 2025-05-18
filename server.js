@@ -9,6 +9,8 @@ const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const cookieParser = require('cookie-parser');
 const ActivityServiceClass = require('./services/activityService');
+const passport = require('passport');
+const { DiscordStrategy } = require('passport-discord');
 require('dotenv').config();
 
 // Autentifikasiya middleware funksiyası
@@ -573,6 +575,67 @@ app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, re
         console.error(`Discord ID ${discordId} ilə istifadəçi axtarışı xətası:`, error);
         res.status(500).json({ error: 'Daxili Server Xətası' });
     }
+});
+
+// Discord Strategy
+passport.use(new DiscordStrategy({
+    clientID: process.env.DISCORD_CLIENT_ID,
+    clientSecret: process.env.DISCORD_CLIENT_SECRET,
+    callbackURL: process.env.DISCORD_REDIRECT_URI,
+    scope: ['identify', 'guilds']
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        // ... existing code ...
+    } catch (error) {
+        console.error('Discord Strategy error:', error);
+        done(error);
+    }
+}));
+
+// Check if user is admin
+function isAdmin(req, res, next) {
+    console.log('isAdmin middleware çalıştı');
+    console.log('Session:', req.session);
+    console.log('Discord ID in session:', req.session?.discordId);
+    console.log('Admin Discord ID (env):', process.env.ADMIN_DISCORD_ID);
+
+    if (req.session && req.session.discordId && req.session.discordId === process.env.ADMIN_DISCORD_ID) {
+        console.log('İstifadəçi admin tapıldı.');
+        return next();
+    } else {
+        console.log('İstifadəçi admin deyil və ya sessiya yoxdur.');
+        // Redirect to home page if not admin
+        return res.status(403).send('Forbidden'); // Or render an access denied page
+    }
+}
+
+// API endpoint to check admin status
+app.get('/api/admin/check', isAdmin, (req, res) => {
+    res.json({ isAdmin: true });
+});
+
+// API endpoint to get list of servers (guilds)
+app.get('/api/servers', isAdmin, (req, res) => {
+    console.log('[/api/servers] endpointine istek geldi.');
+    // Bot client'ına erişim sağlandığını varsayıyoruz. Eğer client global değilse veya farklı bir
+    // şekilde erişiliyorsa, bu kısmı projenize uygun şekilde düzenlemeniz gerekebilir.
+    if (!client) {
+        console.error('Discord client instance tapılmadı.');
+        return res.status(500).json({ error: 'Bot client instance tapılmadı.' });
+    }
+
+    const servers = client.guilds.cache.map(guild => ({
+        id: guild.id,
+        name: guild.name
+    }));
+    console.log(`Bot ${servers.length} serverde.`);
+    res.json(servers);
+});
+
+// Admin panel route
+app.get('/admin', isAdmin, (req, res) => {
+    // Check if request is for HTML page or just data
+    // ... existing code ...
 });
 
 app.listen(port, () => {
