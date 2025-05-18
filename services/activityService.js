@@ -1,11 +1,11 @@
 const { Activity } = require('../models/Activity');
+const { Op } = require('sequelize');
 
 class ActivityService {
     // Yeni fəaliyyət əlavə etmək
     static async logActivity(data) {
         try {
-            const activity = new Activity(data);
-            await activity.save();
+            const activity = await Activity.create(data);
             return activity;
         } catch (error) {
             console.error('Fəaliyyət qeyd edilərkən xəta:', error);
@@ -32,9 +32,12 @@ class ActivityService {
     // İstifadəçi üçün fəaliyyətləri əldə etmək
     static async getUserActivities(userId, serverId, limit = 50) {
         try {
-            return await Activity.find({ userId, serverId })
-                .sort({ timestamp: -1 })
-                .limit(limit);
+            const activities = await Activity.findAll({
+                where: { userId, serverId },
+                order: [['timestamp', 'DESC']],
+                limit: parseInt(limit)
+            });
+            return activities;
         } catch (error) {
             console.error('İstifadəçi fəaliyyətləri əldə edilərkən xəta:', error);
             throw error;
@@ -80,8 +83,12 @@ class ActivityService {
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - days);
             
-            await Activity.deleteMany({
-                timestamp: { $lt: cutoffDate }
+            await Activity.destroy({
+                where: {
+                    timestamp: {
+                        [Op.lt]: cutoffDate
+                    }
+                }
             });
         } catch (error) {
             console.error('Köhnə fəaliyyətlər təmizlənərkən xəta:', error);
@@ -109,9 +116,12 @@ class ActivityService {
     // Kanal üzrə fəaliyyətləri əldə etmək
     static async getChannelActivities(channelId, serverId, limit = 50) {
         try {
-            return await Activity.find({ channelId, serverId })
-                .sort({ timestamp: -1 })
-                .limit(limit);
+            const activities = await Activity.findAll({
+                where: { channelId, serverId },
+                order: [['timestamp', 'DESC']],
+                limit: parseInt(limit)
+            });
+            return activities;
         } catch (error) {
             console.error('Kanal fəaliyyətləri əldə edilərkən xəta:', error);
             throw error;
@@ -183,6 +193,7 @@ class ActivityService {
         }
     }
 
+    // Bütün fəaliyyətləri silmək
     static async deleteAllActivities() {
         try {
             await Activity.destroy({
