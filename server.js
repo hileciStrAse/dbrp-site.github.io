@@ -129,29 +129,44 @@ app.post('/api/contact', async (req, res) => {
     }
 });
 
-// Fəaliyyətləri oxu
-app.get('/api/activities', (req, res) => {
-    if (fs.existsSync(activitiesFile)) {
-        const data = fs.readFileSync(activitiesFile, 'utf-8');
-        res.json(JSON.parse(data));
-    } else {
-        res.json([]);
+// Fəaliyyətləri oxu (Database ilə)
+app.get('/api/activities', async (req, res) => {
+    const { limit = 20, skip = 0, serverId } = req.query;
+    if (!serverId) {
+        return res.status(400).json({ success: false, error: 'Server ID daxil edilməlidir.' });
+    }
+    try {
+        const activities = await ActivityService.getServerActivities(serverId, parseInt(limit), parseInt(skip));
+        res.json(activities);
+    } catch (error) {
+        console.error('Fəaliyyətlər əldə edilərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Fəaliyyətlər əldə edilərkən xəta baş verdi.' });
     }
 });
 
-// Yeni fəaliyyət əlavə et
-app.post('/api/activities', (req, res) => {
-    const { title, description, date, icon } = req.body;
-    if (!title || !description || !date || !icon) {
-        return res.status(400).json({ success: false, error: 'Bütün sahələr doldurulmalıdır.' });
+// Yeni fəaliyyət əlavə et (Bu endpoint ehtimal ki, artıq bot tərəfindən idarə olunur)
+// app.post('/api/activities', async (req, res) => {
+//     res.status(405).json({ success: false, error: 'Bu endpoint istifadə edilmir.' });
+// });
+
+// Bütün fəaliyyətləri sil (Database ilə, Admin üçün)
+app.delete('/api/activities', async (req, res) => {
+    // Admin autentifikasiyasını yoxla
+    if (!req.session.discordId) {
+        return res.status(401).json({ success: false, error: 'Giriş icazəniz yoxdur.' });
     }
-    let activities = [];
-    if (fs.existsSync(activitiesFile)) {
-        activities = JSON.parse(fs.readFileSync(activitiesFile, 'utf-8'));
+    try {
+        const adminUser = await Admin.findOne({ where: { discordId: req.session.discordId } });
+        if (!adminUser) {
+            return res.status(403).json({ success: false, error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
+        }
+
+        await ActivityService.deleteAllActivities(); // ActivityService-də belə bir funksiyanın olduğunu fərz edirik
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Bütün fəaliyyətlər silinərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Bütün fəaliyyətlər silinərkən xəta baş verdi.' });
     }
-    activities.unshift({ id: Date.now().toString(), title, description, date, icon });
-    fs.writeFileSync(activitiesFile, JSON.stringify(activities, null, 2));
-    res.json({ success: true });
 });
 
 // VAPID açarlarını bura əlavə et (öz açarlarınla əvəz et)
@@ -266,28 +281,6 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
     }
 });
 
-// Fəaliyyət yönetimi endpoint'ləri (Database ilə)
-app.get('/api/activities', async (req, res) => {
-    const { limit = 20, skip = 0 } = req.query;
-    try {
-        const activities = await ActivityService.getServerActivities(req.query.serverId, parseInt(limit), parseInt(skip));
-        res.json(activities);
-    } catch (error) {
-        console.error('Fəaliyyətlər əldə edilərkən xəta:', error);
-        res.status(500).json({ success: false, error: 'Fəaliyyətlər əldə edilərkən xəta baş verdi.' });
-    }
-});
-
-app.delete('/api/activities', async (req, res) => {
-    try {
-        await ActivityService.deleteAllActivities(); // Assuming deleteAllActivities exists in ActivityService
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Bütün fəaliyyətlər silinərkən xəta:', error);
-        res.status(500).json({ success: false, error: 'Bütün fəaliyyətlər silinərkən xəta baş verdi.' });
-    }
-});
-
 // Discord OAuth2 endpoint'ləri
 app.get('/auth/discord', (req, res) => {
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.DISCORD_REDIRECT_URI)}&response_type=code&scope=identify`;
@@ -383,26 +376,35 @@ app.get('/admin', async (req, res) => {
     }
 });
 
-// Bağlı İstifadəçilər endpoint'i (Database ilə, Admin üçün)
-app.get('/api/admin/connected-users', async (req, res) => {
-    // Admin autentifikasiyasını yoxla
-    if (!req.session.discordId) {
-        return res.status(401).json({ success: false, error: 'Giriş icazəniz yoxdur.' });
-    }
+// Get all connected users or search by Discord ID
+app.get('/api/admin/connected-users', ensureAuthenticated, async (req, res) => {
     try {
-        const adminUser = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (!adminUser) {
-            return res.status(403).json({ success: false, error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
-        }
-
-        const connectedUsers = await ConnectedUser.findAll({
-            attributes: ['discordId', 'username', 'connectedAt'],
-            order: [['connectedAt', 'DESC']]
-        });
-        res.json(connectedUsers);
+        const users = await ConnectedUser.findAll();
+        res.json(users);
     } catch (error) {
-        console.error('Bağlı istifadəçilər əldə edilərkən xəta:', error);
-        res.status(500).json({ success: false, error: 'Bağlı istifadəçilər əldə edilərkən xəta baş verdi.' });
+        console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
+        res.status(500).json({ error: 'Daxili Server Xətası' });
+    }
+});
+
+// Search connected users by Discord ID
+app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, res) => {
+    const { discordId } = req.query;
+    if (!discordId) {
+        return res.status(400).json({ error: 'Discord ID tələb olunur.' });
+    }
+
+    try {
+        const user = await ConnectedUser.findOne({
+            where: {
+                discordId: discordId
+            }
+        });
+        // Return as an array to be consistent with the /api/admin/connected-users endpoint
+        res.json(user ? [user] : []);
+    } catch (error) {
+        console.error(`Discord ID ${discordId} ilə istifadəçi axtarışı xətası:`, error);
+        res.status(500).json({ error: 'Daxili Server Xətası' });
     }
 });
 
