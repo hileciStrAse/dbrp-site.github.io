@@ -1,4 +1,4 @@
-const Activity = require('../models/Activity');
+const { Activity } = require('../models/Activity');
 
 class ActivityService {
     // Yeni fəaliyyət əlavə etmək
@@ -14,14 +14,17 @@ class ActivityService {
     }
 
     // Server üçün fəaliyyətləri əldə etmək
-    static async getServerActivities(serverId, limit = 100, skip = 0) {
+    static async getServerActivities(serverId, limit = 20, skip = 0) {
         try {
-            return await Activity.find({ serverId })
-                .sort({ timestamp: -1 })
-                .skip(skip)
-                .limit(limit);
+            const activities = await Activity.findAll({
+                where: { serverId },
+                order: [['timestamp', 'DESC']],
+                limit: parseInt(limit),
+                offset: parseInt(skip)
+            });
+            return activities;
         } catch (error) {
-            console.error('Server fəaliyyətləri əldə edilərkən xəta:', error);
+            console.error('Fəaliyyətlər əldə edilərkən xəta:', error);
             throw error;
         }
     }
@@ -176,6 +179,19 @@ class ActivityService {
             ]);
         } catch (error) {
             console.error('İstifadəçi statistikaları əldə edilərkən xəta:', error);
+            throw error;
+        }
+    }
+
+    static async deleteAllActivities() {
+        try {
+            await Activity.destroy({
+                where: {},
+                truncate: true
+            });
+            return true;
+        } catch (error) {
+            console.error('Bütün fəaliyyətlər silinərkən xəta:', error);
             throw error;
         }
     }
