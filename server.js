@@ -316,7 +316,8 @@ app.get('/auth/discord', (req, res) => {
         client_id: process.env.DISCORD_CLIENT_ID,
         response_type: 'code',
         redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
-        scope: 'identify guilds'
+        scope: 'identify guilds',
+        prompt: 'consent'
     };
     console.log('OAuth2 Parameters:', params);
     const discordAuthUrl = 'https://discord.com/oauth2/authorize?' + new URLSearchParams(params).toString();
@@ -348,7 +349,16 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     if (error) {
         console.error('Callback: Discord OAuth2 error:', error, errorDescription);
-        return res.status(400).send(`Discord OAuth2 error: ${error} - ${errorDescription}`);
+        return res.status(400).send(`
+            <html>
+                <body>
+                    <h1>Discord OAuth2 Hatası</h1>
+                    <p>Hata: ${error}</p>
+                    <p>Açıklama: ${errorDescription}</p>
+                    <p>Lütfen tekrar deneyin: <a href="/auth/discord">Discord ile Giriş Yap</a></p>
+                </body>
+            </html>
+        `);
     }
 
     if (!code) {
@@ -373,6 +383,7 @@ app.get('/auth/discord/callback', async (req, res) => {
                         url: req.url,
                         originalUrl: req.originalUrl
                     }, null, 2)}</pre>
+                    <p>Lütfen tekrar deneyin: <a href="/auth/discord">Discord ile Giriş Yap</a></p>
                 </body>
             </html>
         `);
