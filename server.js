@@ -37,7 +37,8 @@ app.use(session({
     saveUninitialized: true,
     cookie: { 
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 // 24 saat
+        maxAge: 1000 * 60 * 60 * 24, // 24 saat
+        httpOnly: true
     }
 }));
 
@@ -290,26 +291,29 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
 // Admin yoxlaması üçün middleware
 const isAdmin = async (req, res, next) => {
     try {
-        console.log('Session:', req.session); // Debug üçün
-        console.log('Discord ID:', req.session.discordId); // Debug üçün
-        
-        if (!req.session.discordId) {
-            console.log('Discord ID tapılmadı, giriş səhifəsinə yönləndirilir'); // Debug üçün
+        // Sessiyanı yoxla
+        if (!req.session || !req.session.discordId) {
+            console.log('Sessiya tapılmadı, Discord girişinə yönləndirilir');
             return res.redirect('/auth/discord');
         }
 
         // Admin cədvəlində yoxla
         const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (!admin) {
-            // Admin cədvəlində yoxdursa, .env faylında yoxla
-            if (req.session.discordId === process.env.ADMIN_DISCORD_ID) {
-                // Admin cədvəlinə əlavə et
-                await Admin.create({ discordId: req.session.discordId });
-                return next();
-            }
-            return res.redirect('/');
+        if (admin) {
+            console.log('Admin tapıldı:', admin.discordId);
+            return next();
         }
-        next();
+
+        // Admin cədvəlində yoxdursa, .env faylında yoxla
+        if (req.session.discordId === process.env.ADMIN_DISCORD_ID) {
+            console.log('Admin .env faylında tapıldı, cədvələ əlavə edilir');
+            await Admin.create({ discordId: req.session.discordId });
+            return next();
+        }
+
+        console.log('Admin tapılmadı, ana səhifəyə yönləndirilir');
+        return res.redirect('/');
+
     } catch (error) {
         console.error('Admin yoxlama xətası:', error);
         res.status(500).send('Server xətası baş verdi.');
@@ -336,7 +340,7 @@ app.get('/api/admin/check', isAdmin, (req, res) => {
 
 // Discord OAuth2 endpoint'ləri
 app.get('/auth/discord', (req, res) => {
-    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=${encodeURIComponent(process.env.DISCORD_REDIRECT_URI)}&scope=identify+guilds`;
+    const discordAuthUrl = 'https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2F&scope=identify+guilds';
     res.redirect(discordAuthUrl);
 });
 
@@ -348,73 +352,70 @@ app.get('/auth/discord/callback', async (req, res) => {
     }
 
     try {
-        const oauth2Data = new URLSearchParams({
-            client_id: process.env.DISCORD_CLIENT_ID,
-            client_secret: process.env.DISCORD_CLIENT_SECRET,
-            code: code,
-            grant_type: 'authorization_code',
-            redirect_uri: process.env.DISCORD_REDIRECT_URI,
-            scope: 'identify',
-        });
-
+        // Token əldə et
         const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
             method: 'POST',
-            body: oauth2Data,
+            body: new URLSearchParams({
+                client_id: process.env.DISCORD_CLIENT_ID,
+                client_secret: process.env.DISCORD_CLIENT_SECRET,
+                code: code,
+                grant_type: 'authorization_code',
+                redirect_uri: process.env.DISCORD_REDIRECT_URI,
+                scope: 'identify',
+            }),
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
         });
 
-        const oauth2 = await tokenResponse.json();
-
-        if (oauth2.error) {
-            console.error('Discord OAuth2 token xətası:', oauth2.error);
-            return res.status(400).send('Discord OAuth2 token alınmadı.');
+        const tokenData = await tokenResponse.json();
+        if (tokenData.error) {
+            throw new Error(`Token xətası: ${tokenData.error}`);
         }
 
+        // İstifadəçi məlumatlarını əldə et
         const userResponse = await fetch('https://discord.com/api/users/@me', {
             headers: {
-                authorization: `${oauth2.token_type} ${oauth2.access_token}`,
+                authorization: `${tokenData.token_type} ${tokenData.access_token}`,
             },
         });
 
-        const user = await userResponse.json();
-        console.log('Discord user:', user); // Debug üçün
+        const userData = await userResponse.json();
+        if (!userData.id) {
+            throw new Error('İstifadəçi məlumatları alına bilmədi');
+        }
 
-        // Sessiyaya Discord ID-ni əlavə et
-        req.session.discordId = user.id;
-        
+        // Sessiyanı yenilə
+        req.session.discordId = userData.id;
+        req.session.username = userData.username;
+
         // Sessiyanı yadda saxla
-        req.session.save((err) => {
-            if (err) {
-                console.error('Session save error:', err);
-                return res.status(500).send('Session xətası baş verdi.');
-            }
-
-            // ConnectedUser cədvəlinə əlavə et
-            ConnectedUser.findOrCreate({
-                where: { discordId: user.id },
-                defaults: {
-                    username: user.username
-                }
-            }).then(() => {
-                // Admin yoxlaması
-                if (user.id === process.env.ADMIN_DISCORD_ID) {
-                    // Admin cədvəlinə əlavə et
-                    Admin.findOrCreate({
-                        where: { discordId: user.id }
-                    }).then(() => {
-                        res.redirect('/admin.html');
-                    });
-                } else {
-                    res.redirect('/');
-                }
+        await new Promise((resolve, reject) => {
+            req.session.save((err) => {
+                if (err) reject(err);
+                else resolve();
             });
         });
 
+        // ConnectedUser cədvəlinə əlavə et
+        await ConnectedUser.findOrCreate({
+            where: { discordId: userData.id },
+            defaults: { username: userData.username }
+        });
+
+        // Admin yoxlaması
+        if (userData.id === process.env.ADMIN_DISCORD_ID) {
+            await Admin.findOrCreate({
+                where: { discordId: userData.id }
+            });
+            return res.redirect('/admin.html');
+        }
+
+        res.redirect('/');
+
     } catch (error) {
-        console.error('Discord OAuth2 callback xətası:', error);
-        res.status(500).send('Discord OAuth2 callback xətası baş verdi.');
+        console.error('Discord giriş xətası:', error);
+        res.status(500).send('Giriş xətası baş verdi.');
     }
 });
 
