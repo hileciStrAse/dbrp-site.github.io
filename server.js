@@ -7,6 +7,7 @@ const webpush = require('web-push');
 const { Sequelize, DataTypes } = require('sequelize');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
+const cookieParser = require('cookie-parser');
 const ActivityServiceClass = require('./services/activityService');
 require('dotenv').config();
 
@@ -29,6 +30,9 @@ const port = process.env.PORT || 5001;
 // Express-ə proxy arxasında işlədiyini bildirir (Render üçün vacibdir)
 app.set('trust proxy', 1);
 
+// Cookie parser middleware'ini ekle
+app.use(cookieParser());
+
 // Sessiya konfiqurasiyası
 app.use(session({
     store: new SQLiteStore({
@@ -39,12 +43,12 @@ app.use(session({
     resave: true,
     saveUninitialized: true,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true', // Renderdə və production-da true
+        secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
         maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
-        sameSite: 'Lax', // SameSite parametini Lax edirik
-        path: '/'
-        // domain parametini sildik, çünki bəzən problemlərə səbəb ola bilər
+        sameSite: 'Lax',
+        path: '/',
+        domain: 'dbrpbot.onrender.com'
     }
 }));
 
@@ -308,12 +312,14 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
 // Discord OAuth2 endpoint'ləri
 app.get('/auth/discord', (req, res) => {
     console.log('/auth/discord: Redirecting to Discord OAuth with full callback URI');
-    const discordAuthUrl = 'https://discord.com/oauth2/authorize?' + new URLSearchParams({
+    const params = {
         client_id: process.env.DISCORD_CLIENT_ID,
         response_type: 'code',
         redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
         scope: 'identify guilds'
-    }).toString();
+    };
+    console.log('OAuth2 Parameters:', params);
+    const discordAuthUrl = 'https://discord.com/oauth2/authorize?' + new URLSearchParams(params).toString();
     console.log('Generated Discord Auth URL:', discordAuthUrl);
     res.redirect(discordAuthUrl);
 });
@@ -322,12 +328,18 @@ app.get('/auth/discord', (req, res) => {
 app.get('/auth/discord/callback', async (req, res) => {
     console.log('Callback: Received request to /auth/discord/callback');
     console.log('Callback: Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
+    console.log('Callback: Raw URL:', req.url);
+    console.log('Callback: Original URL:', req.originalUrl);
+    console.log('Callback: Base URL:', req.baseUrl);
+    console.log('Callback: Path:', req.path);
     console.log('Callback: Request details:', {
         method: req.method,
         url: req.originalUrl,
         headers: req.headers,
         query: req.query,
-        body: req.body
+        body: req.body,
+        cookies: req.cookies,
+        signedCookies: req.signedCookies
     });
 
     const code = req.query.code;
@@ -341,6 +353,8 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     if (!code) {
         console.error('Callback: Discord OAuth2 kodu alınmadı.', req.query);
+        console.error('Callback: Request headers:', req.headers);
+        console.error('Callback: Request cookies:', req.cookies);
         return res.status(400).send(`
             <html>
                 <body>
@@ -352,7 +366,13 @@ app.get('/auth/discord/callback', async (req, res) => {
                         <li>Tarayıcınızın çerezlerini temizleyin ve tekrar deneyin</li>
                     </ul>
                     <p>Hata detayları:</p>
-                    <pre>${JSON.stringify(req.query, null, 2)}</pre>
+                    <pre>${JSON.stringify({
+                        query: req.query,
+                        headers: req.headers,
+                        cookies: req.cookies,
+                        url: req.url,
+                        originalUrl: req.originalUrl
+                    }, null, 2)}</pre>
                 </body>
             </html>
         `);
