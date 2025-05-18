@@ -592,23 +592,6 @@ passport.use(new DiscordStrategy({
     }
 }));
 
-// Check if user is admin
-function isAdmin(req, res, next) {
-    console.log('isAdmin middleware çalıştı');
-    console.log('Session:', req.session);
-    console.log('Discord ID in session:', req.session?.discordId);
-    console.log('Admin Discord ID (env):', process.env.ADMIN_DISCORD_ID);
-
-    if (req.session && req.session.discordId && req.session.discordId === process.env.ADMIN_DISCORD_ID) {
-        console.log('İstifadəçi admin tapıldı.');
-        return next();
-    } else {
-        console.log('İstifadəçi admin deyil və ya sessiya yoxdur.');
-        // Redirect to home page if not admin
-        return res.status(403).send('Forbidden'); // Or render an access denied page
-    }
-}
-
 // API endpoint to check admin status
 app.get('/api/admin/check', isAdmin, (req, res) => {
     res.json({ isAdmin: true });
