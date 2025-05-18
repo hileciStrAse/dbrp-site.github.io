@@ -26,6 +26,9 @@ const sequelize = new Sequelize({
 const app = express();
 const port = process.env.PORT || 5001;
 
+// Express-ə proxy arxasında işlədiyini bildirir (Render üçün vacibdir)
+app.set('trust proxy', 1);
+
 // Sessiya konfiqurasiyası
 app.use(session({
     store: new SQLiteStore({
@@ -39,7 +42,7 @@ app.use(session({
         secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true', // Renderdə və production-da true
         maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
-        sameSite: 'lax', // Bəzi brauzerlərdə lax problemi həll edə bilər
+        sameSite: 'Lax', // SameSite parametini Lax edirik
         path: '/'
         // domain parametini sildik, çünki bəzən problemlərə səbəb ola bilər
     }
