@@ -577,50 +577,6 @@ app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, re
     }
 });
 
-// Discord Strategy
-passport.use(new DiscordStrategy({
-    clientID: process.env.DISCORD_CLIENT_ID,
-    clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: process.env.DISCORD_REDIRECT_URI,
-    scope: ['identify', 'guilds']
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        // ... existing code ...
-    } catch (error) {
-        console.error('Discord Strategy error:', error);
-        done(error);
-    }
-}));
-
-// API endpoint to check admin status
-app.get('/api/admin/check', isAdmin, (req, res) => {
-    res.json({ isAdmin: true });
-});
-
-// API endpoint to get list of servers (guilds)
-app.get('/api/servers', isAdmin, (req, res) => {
-    console.log('[/api/servers] endpointine istek geldi.');
-    // Bot client'ına erişim sağlandığını varsayıyoruz. Eğer client global değilse veya farklı bir
-    // şekilde erişiliyorsa, bu kısmı projenize uygun şekilde düzenlemeniz gerekebilir.
-    if (!client) {
-        console.error('Discord client instance tapılmadı.');
-        return res.status(500).json({ error: 'Bot client instance tapılmadı.' });
-    }
-
-    const servers = client.guilds.cache.map(guild => ({
-        id: guild.id,
-        name: guild.name
-    }));
-    console.log(`Bot ${servers.length} serverde.`);
-    res.json(servers);
-});
-
-// Admin panel route
-app.get('/admin', isAdmin, (req, res) => {
-    // Check if request is for HTML page or just data
-    // ... existing code ...
-});
-
 app.listen(port, () => {
     console.log(`Server ${port} portunda işləyir`);
 });
