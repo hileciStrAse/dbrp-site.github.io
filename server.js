@@ -14,6 +14,9 @@ const { DiscordStrategy } = require('passport-discord');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const bcrypt = require('bcrypt');
 require('dotenv').config();
+const { ConnectedUser } = require('./models/ConnectedUser');
+const ActivityService = require('./services/activityService');
+const { Op } = require('sequelize');
 
 // Discord bot client instance (başqa fayldan ötürüləcək)
 let discordClient = null;
@@ -723,6 +726,102 @@ app.setDiscordClient = (client) => {
     app.locals.discordClient = client;
     console.log('Discord client instance app.locals-a təyin edildi.');
 };
+
+// FIN kod ilə istifadəçi tapmaq endpointi
+app.get('/api/user/fin/:finCode', async (req, res) => {
+    const finCode = req.params.finCode.toUpperCase();
+    const finApiUrl = process.env.FIN_API_URL;
+
+    if (!finApiUrl) {
+        console.error('FIN_API_URL ətraf mühit dəyişəni təyin edilməyib.');
+        return res.status(500).json({ success: false, message: 'Serverdə konfigurasiya xətası.' });
+    }
+
+    try {
+        const response = await fetch(`${finApiUrl}/user/fin/${finCode}`);
+
+        if (!response.ok) {
+            // API cavabı uğursuz olduqda
+            if (response.status === 404) {
+                return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapılmadı.' });
+            } else {
+                console.error(`FIN API istifadəçi sorğusu xətası: ${response.status} ${response.statusText}`);
+                return res.status(response.status).json({ success: false, message: `API sorğusu uğursuz oldu: ${response.statusText}` });
+            }
+        }
+
+        const userData = await response.json();
+
+        // API-dən gələn məlumatların formatına əmin olun
+        if (!userData || typeof userData.discordId === 'undefined') {
+             console.error('FIN API-dən gözlənilməyən cavab formatı:', userData);
+             return res.status(500).json({ success: false, message: 'API-dən gözlənilməyən məlumat formatı.' });
+        }
+
+        // Verilənlər bazamızda bu discordId ilə istifadəçi var mı yoxla
+        const connectedUser = await ConnectedUser.findOne({ where: { discordId: userData.discordId } });
+
+        if (!connectedUser) {
+             // API-də tapıldı, amma bizim DB-də yoxdursa, bu o deməkdir ki, qeydiyyatdan keçməyib
+             return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapıldı, lakin saytda qeydiyyatdan keçməyib.' });
+        }
+
+        res.json({ success: true, discordId: userData.discordId });
+
+    } catch (error) {
+        console.error('FIN kod ilə istifadəçi tapılarkən server xətası:', error);
+        res.status(500).json({ success: false, message: 'Server xətası baş verdi.' });
+    }
+});
+
+// FIN kod və Discord ID uyğunluğunu yoxlamaq endpointi (qeydiyyat üçün)
+app.post('/api/verify/fin', async (req, res) => {
+    const { finCode, discordId } = req.body;
+    const finApiUrl = process.env.FIN_API_URL;
+
+    if (!finApiUrl) {
+        console.error('FIN_API_URL ətraf mühit dəyişəni təyin edilməyib.');
+        return res.status(500).json({ success: false, message: 'Serverdə konfigurasiya xətası.' });
+    }
+
+    if (!finCode || !discordId) {
+        return res.status(400).json({ success: false, message: 'FIN kod və Discord ID təmin edilməlidir.' });
+    }
+
+    try {
+        // API-dən FIN kod və Discord ID uyğunluğunu yoxla
+        const response = await fetch(`${finApiUrl}/verify/fin`, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ finCode, discordId })
+        });
+
+        if (!response.ok) {
+             // API cavabı uğursuz olduqda
+             if (response.status === 400) {
+                  const errorData = await response.json();
+                  return res.status(400).json({ success: false, message: errorData.message || 'API-dən uyğunsuzluq cavabı gəldi.' });
+             } else {
+                  console.error(`FIN API doğrulama sorğusu xətası: ${response.status} ${response.statusText}`);
+                  return res.status(response.status).json({ success: false, message: `API doğrulama sorğusu uğursuz oldu: ${response.statusText}` });
+             }
+        }
+
+        const verificationData = await response.json();
+
+        // API-dən gələn məlumatların formatına əmin olun
+        if (!verificationData || typeof verificationData.isValid === 'undefined') {
+             console.error('FIN API doğrulama endpointindən gözlənilməyən cavab formatı:', verificationData);
+             return res.status(500).json({ success: false, message: 'API-dən gözlənilməyən doğrulama məlumatı formatı.' });
+        }
+
+        res.json({ success: true, isValid: verificationData.isValid });
+
+    } catch (error) {
+        console.error('FIN kod doğrulama zamanı server xətası:', error);
+        res.status(500).json({ success: false, message: 'Server xətası baş verdi.' });
+    }
+});
 
 app.listen(port, () => {
     console.log(`Server ${port} portunda işləyir`);
