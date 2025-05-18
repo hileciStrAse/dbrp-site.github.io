@@ -161,6 +161,79 @@ app.post('/api/announcements', (req, res) => {
     res.json({ success: true });
 });
 
+// Admin paneli üçün duyuru yönetimi endpoint'ləri (Database ilə)
+app.get('/api/admin/announcements', async (req, res) => {
+    try {
+        const announcements = await AnnouncementService.getAllAnnouncements();
+        res.json(announcements);
+    } catch (error) {
+        console.error('Elanlar əldə edilərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Elanlar əldə edilərkən xəta baş verdi.' });
+    }
+});
+
+app.post('/api/announcements', async (req, res) => {
+    const { title, message } = req.body;
+    if (!title || !message) {
+        return res.status(400).json({ success: false, error: 'Başlıq və mətn daxil edilməlidir.' });
+    }
+    try {
+        const newAnn = await AnnouncementService.createAnnouncement(title, message);
+
+        // Push notification göndər
+        let subscriptions = [];
+        if (fs.existsSync(subsFile)) {
+            subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
+        }
+        const payload = JSON.stringify({ title, message });
+        subscriptions.forEach(sub => {
+            webpush.sendNotification(sub, payload).catch(err => console.error(err));
+        });
+
+        res.json({ success: true, announcement: newAnn });
+    } catch (error) {
+        console.error('Elan göndərilərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Elan göndərilərkən xəta baş verdi.' });
+    }
+});
+
+app.delete('/api/admin/announcements/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await AnnouncementService.deleteAnnouncement(id);
+        if (result) {
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ success: false, error: 'Elan tapılmadı.' });
+        }
+    } catch (error) {
+        console.error('Elan silinərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Elan silinərkən xəta baş verdi.' });
+    }
+});
+
+// Fəaliyyət yönetimi endpoint'ləri (Database ilə)
+app.get('/api/activities', async (req, res) => {
+    const { limit = 20, skip = 0 } = req.query;
+    try {
+        const activities = await ActivityService.getServerActivities(req.query.serverId, parseInt(limit), parseInt(skip));
+        res.json(activities);
+    } catch (error) {
+        console.error('Fəaliyyətlər əldə edilərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Fəaliyyətlər əldə edilərkən xəta baş verdi.' });
+    }
+});
+
+app.delete('/api/activities', async (req, res) => {
+    try {
+        await ActivityService.deleteAllActivities(); // Assuming deleteAllActivities exists in ActivityService
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Bütün fəaliyyətlər silinərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Bütün fəaliyyətlər silinərkən xəta baş verdi.' });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server ${port} portunda işləyir`);
 }); 
