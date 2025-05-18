@@ -308,26 +308,54 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
 // Discord OAuth2 endpoint'ləri
 app.get('/auth/discord', (req, res) => {
     console.log('/auth/discord: Redirecting to Discord OAuth with full callback URI');
-    const discordAuthUrl = 'https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds';
+    const discordAuthUrl = 'https://discord.com/oauth2/authorize?' + new URLSearchParams({
+        client_id: process.env.DISCORD_CLIENT_ID,
+        response_type: 'code',
+        redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
+        scope: 'identify guilds'
+    }).toString();
+    console.log('Generated Discord Auth URL:', discordAuthUrl);
     res.redirect(discordAuthUrl);
 });
 
 // Discord OAuth2 callback
 app.get('/auth/discord/callback', async (req, res) => {
     console.log('Callback: Received request to /auth/discord/callback');
-    console.log('Callback: Request details:', { // Request obyektini tam log edirik
+    console.log('Callback: Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
+    console.log('Callback: Request details:', {
         method: req.method,
         url: req.originalUrl,
         headers: req.headers,
         query: req.query,
-        body: req.body // Əgər body varsa (bu halda ehtimal ki yoxdur)
+        body: req.body
     });
-    console.log('Callback: Received query parameters:', req.query); // Gələn query parametrlərini log edirik
+
     const code = req.query.code;
+    const error = req.query.error;
+    const errorDescription = req.query.error_description;
+
+    if (error) {
+        console.error('Callback: Discord OAuth2 error:', error, errorDescription);
+        return res.status(400).send(`Discord OAuth2 error: ${error} - ${errorDescription}`);
+    }
+
     if (!code) {
         console.error('Callback: Discord OAuth2 kodu alınmadı.', req.query);
-        // Xətanı istifadəçiyə daha aydın göstərək
-        return res.status(400).send('Discord OAuth2 kodu alınmadı. Zəhmət olmasa, Discord Developer Portalda Redirect URI-nizin <code>https://dbrpbot.onrender.com/auth/discord/callback</code> olmasını yoxlayın. Problem davam edərsə, server loglarını yoxlayın.');
+        return res.status(400).send(`
+            <html>
+                <body>
+                    <h1>Discord OAuth2 kodu alınmadı</h1>
+                    <p>Lütfen aşağıdakileri kontrol edin:</p>
+                    <ul>
+                        <li>Discord Developer Portal'da Redirect URI'nin <code>https://dbrpbot.onrender.com/auth/discord/callback</code> olarak ayarlandığından emin olun</li>
+                        <li>Client ID ve Client Secret'ın doğru olduğundan emin olun</li>
+                        <li>Tarayıcınızın çerezlerini temizleyin ve tekrar deneyin</li>
+                    </ul>
+                    <p>Hata detayları:</p>
+                    <pre>${JSON.stringify(req.query, null, 2)}</pre>
+                </body>
+            </html>
+        `);
     }
 
     console.log('Callback: Received code.');
