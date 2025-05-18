@@ -696,6 +696,30 @@
                 padding: 20px;
             }
         }
+
+        .discord-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: #5865F2;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .discord-btn:hover {
+            background: #4752C4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(88, 101, 242, 0.2);
+        }
+
+        .discord-btn i {
+            font-size: 1.2em;
+        }
     </style>
 </head>
 <body>
@@ -707,9 +731,9 @@
         </div>
         <ul>
             <li><a href="/" class="active"><i class="fas fa-home"></i>Dashboard</a></li>
-            <li><a href="/emrler.html"><i class="fas fa-code"></i>Əmrlər</a></li>
-            <li><a href="/kontakt.html"><i class="fas fa-envelope"></i>Kontakt</a></li>
-            <li><a href="/admin.html"><i class="fas fa-user-cog"></i> Admin Panel</a></li>
+            <li><a href="/emrler"><i class="fas fa-code"></i>Əmrlər</a></li>
+            <li><a href="/kontakt"><i class="fas fa-envelope"></i>Kontakt</a></li>
+            <li><a href="/admin"><i class="fas fa-user-cog"></i> Admin Panel</a></li>
         </ul>
     </nav>
 
@@ -798,7 +822,7 @@
                 <div class="bot-status"><span class="status-online" id="botProfileStatusDot"></span> <span id="botProfileStatus"></span></div>
                 <div class="bot-description" id="botProfileDescription"></div>
                 <a href="/kontakt" class="btn">Əlaqə</a>
-                <a href="https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2F&scope=identify+guilds" class="btn"><i class="fab fa-discord"></i> Discord ilə Giriş</a>
+                <a href="https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds" class="btn discord-btn"><i class="fab fa-discord"></i> Discord ilə Giriş</a>
             </div>
             <div class="bot-stats">
                 <div class="stats-grid">
