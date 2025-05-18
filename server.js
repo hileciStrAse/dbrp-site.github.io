@@ -32,7 +32,7 @@ app.use(session({
         db: 'sessions.sqlite',
         dir: './'
     }),
-    secret: process.env.SESSION_SECRET || 'your_default_secret',
+    secret: 'dbrp_admin_panel_2024_secure_session_key_123456789', // Birbaşa dəyər
     resave: true,
     saveUninitialized: true,
     cookie: { 
