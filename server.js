@@ -496,37 +496,30 @@ const isAdmin = async (req, res, next) => {
         console.log('isAdmin: Discord ID:', req.session && req.session.discordId ? req.session.discordId : 'undefined or session null');
         console.log('isAdmin: process.env.ADMIN_DISCORD_ID:', process.env.ADMIN_DISCORD_ID);
 
-        // Sessiyanı yoxla
+        // Sessiyanı və Discord ID-ni yoxla
         if (!req.session || !req.session.discordId) {
-            console.log('isAdmin: Sessiya tapılmadı və ya discordId yoxdur. Discord girişinə yönləndirilir.');
-            // Buraya return əlavə edirik ki, funksiya dayansın
+            console.log('isAdmin: Sessiya tapılmadı və ya discordId yoxdur.');
+            console.log('isAdmin: Yönləndirilir: /auth/discord');
             console.log('-- isAdmin Middleware End (Redirecting) --');
-            return res.redirect('/auth/discord');
+            return res.redirect('/auth/discord'); // Redirect if no session or no discordId
         }
 
-        console.log('isAdmin: Sessiyada Discord ID tapıldı:', req.session.discordId);
+        console.log('isAdmin: Sessiyada tapılan Discord ID:', req.session.discordId);
+        console.log('isAdmin: Müqayisə edilir: Session ID == ADMIN_DISCORD_ID');
 
-        // Admin cədvəlində yoxla
-        const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (admin) {
-            console.log('isAdmin: Admin cədvəlində tapıldı:', admin.discordId);
-            console.log('-- isAdmin Middleware End (Admin Found) --');
-            return next(); // Admin-dirsə, davam et
-        }
-
-        // Admin cədvəlində yoxdursa, .env faylında yoxla
+        // Sessiondaki Discord ID'nin .env'deki ADMIN_DISCORD_ID ile tam eşleştiğini yoxla
         if (req.session.discordId === process.env.ADMIN_DISCORD_ID) {
-            console.log('isAdmin: Admin .env faylında tapıldı, cədvələ əlavə edilir.');
-            // Admin cədvəlinə əlavə et
-            await Admin.create({ discordId: req.session.discordId });
-            console.log('isAdmin: Admin cədvələ əlavə edildi.');
-            console.log('-- isAdmin Middleware End (Admin Added) --');
-            return next(); // Əlavə edildikdən sonra davam et
+            console.log('isAdmin: Discord ID ADMIN_DISCORD_ID ilə uyğun gəlir. Admin girişi icazəlidir.');
+            console.log('-- isAdmin Middleware End (Admin Match) --');
+            return next(); // If matches, proceed
+        } else {
+            console.log('isAdmin: Discord ID ADMIN_DISCORD_ID ilə uyğun gəlmir.');
+            console.log('isAdmin: Giriş qadağandır. Status 403');
+            console.log('-- isAdmin Middleware End (No Admin Match) --');
+            // If not matches, send Forbidden
+            return res.status(403).send('Bu səhifəyə giriş icazəniz yoxdur.');
+            // res.redirect('/'); // Və ya ana səhifəyə yönləndir
         }
-
-        console.log('isAdmin: Admin tapılmadı. Ana səhifəyə yönləndirilir.');
-        console.log('-- isAdmin Middleware End (Not Admin) --');
-        res.redirect('/'); // Admin deyilsə, ana səhifəyə yönləndir
 
     } catch (error) {
         console.error('isAdmin middleware xətası:', error);
