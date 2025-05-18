@@ -7,7 +7,7 @@ const webpush = require('web-push');
 const { Sequelize, DataTypes } = require('sequelize');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
-const ActivityService = require('./services/activityService');
+const ActivityServiceClass = require('./services/activityService');
 require('dotenv').config();
 
 // Autentifikasiya middleware funksiyası
@@ -55,6 +55,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const Admin = require('./models/Admin')(sequelize, DataTypes);
 const ConnectedUser = require('./models/ConnectedUser')(sequelize, DataTypes);
 const Activity = require('./models/Activity')(sequelize, DataTypes);
+
+// ActivityService instansiyasını yaradın və Activity modelini ötürün
+const ActivityService = new ActivityServiceClass(Activity);
 
 // Verilənlər bazasını sinxronizasiya et
 async function syncDatabase() {
