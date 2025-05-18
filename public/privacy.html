@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBRP - Məxfilik Siyasəti</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #00c8ff;
+            --secondary: #0095ff;
+            --dark: #0f172a;
+            --darker: #0a1120;
+            --light: #f8fafc;
+            --glass: rgba(15, 23, 42, 0.7);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            --border: rgba(255, 255, 255, 0.15);
+            --glow: rgba(0, 200, 255, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(145deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .content {
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 40px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .section p {
+            margin-bottom: 15px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .section ul {
+            list-style: none;
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .section ul li {
+            margin-bottom: 10px;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .section ul li:before {
+            content: '•';
+            color: var(--primary);
+            position: absolute;
+            left: 0;
+            font-size: 1.2em;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Məxfilik Siyasəti</h1>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>1. TOPLADIĞIMIZ MƏLUMATLAR</h2>
+                <ul>
+                    <li>Botu istifadə edərkən Discord hesabınız haqqında əsas məlumatları (istifadəçi adı, ID) toplayırıq.</li>
+                    <li>Botun əmrləri ilə necə qarşılıqlı əlaqədə olduğunuz haqqında istifadə məlumatlarını toplaya bilərik.</li>
+                    <li>Siz açıq şəkildə təqdim etmədiyiniz müddətcə şəxsi məlumatları toplamırıq.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>2. MƏLUMATLARIN İSTİFADƏSİ</h2>
+                <ul>
+                    <li>Discord hesab məlumatlarınızı bot xidmətlərini təmin etmək üçün istifadə edirik.</li>
+                    <li>Botun funksionallığını və istifadəçi təcrübəsini yaxşılaşdırmaq üçün istifadə məlumatlarından istifadə edirik.</li>
+                    <li>Vacib yeniləmələr haqqında sizinlə əlaqə saxlamaq üçün məlumatlarınızdan istifadə edə bilərik.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>3. MƏLUMATLARIN SAXLANMASI</h2>
+                <ul>
+                    <li>Məlumatlarınız serverlərimizdə təhlükəsiz şəkildə saxlanılır.</li>
+                    <li>Məlumatlarınızı qorumaq üçün müvafiq təhlükəsizlik tədbirləri görürük.</li>
+                    <li>Məlumatlarınızı yalnız bot xidmətlərini təmin etmək üçün lazım olduğu qədər saxlayırıq.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>4. MƏLUMATLARIN PAYLAŞILMASI</h2>
+                <ul>
+                    <li>Şəxsi məlumatlarınızı üçüncü tərəflərlə satmır və ya paylaşmırıq.</li>
+                    <li>Statistik məqsədlər üçün ümumiləşdirilmiş, anonim məlumatları paylaşa bilərik.</li>
+                    <li>Qanun tələb edirsə və ya hüquqlarımızı qorumaq üçün məlumatları açıqlaya bilərik.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>5. SİZİN HÜQUQLARINIZ</h2>
+                <ul>
+                    <li>Məlumatlarınıza daxil olmaq hüququnuz var.</li>
+                    <li>Məlumatlarınızın silinməsini istənilən vaxt tələb edə bilərsiniz.</li>
+                    <li>Bizdən gələn mesajları almaqdan imtina edə bilərsiniz.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>6. MƏLUMATLARIN TƏHLÜKƏSİZLİYİ</h2>
+                <ul>
+                    <li>Məlumatlarınızı qorumaq üçün müvafiq təhlükəsizlik tədbirləri tətbiq edirik.</li>
+                    <li>Həssas məlumatları qorumaq üçün şifrələmədən istifadə edirik.</li>
+                    <li>Sistemlərimizi təhlükəsizlik zəiflikləri üçün mütəmadi yoxlayırıq.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>7. UŞAQLARIN MƏXFİLİYİ</h2>
+                <ul>
+                    <li>Botumuz 13 yaşından kiçik uşaqlar üçün nəzərdə tutulmayıb.</li>
+                    <li>13 yaşından kiçik uşaqlardan bilərəkdən məlumat toplamırıq.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>8. SİYASƏTİN DƏYİŞDİRİLMƏSİ</h2>
+                <ul>
+                    <li>Bu Məxfilik Siyasətini vaxtaşırı yeniləyə bilərik.</li>
+                    <li>Əhəmiyyətli dəyişikliklər haqqında sizi məlumatlandıracağıq.</li>
+                    <li>Botu istifadə etməyə davam etmək yenilənmiş siyasətin qəbul edilməsi deməkdir.</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>9. BİZİMLƏ ƏLAQƏ</h2>
+                <p>Bu Məxfilik Siyasəti haqqında hər hansı bir sualınız varsa, bizimlə əlaqə saxlayın:<br>
+                support@botname.com</p>
+            </div>
+
+            <div class="section">
+                <h2>10. HÜQUQİ ƏSAS</h2>
+                <p>Bu Məxfilik Siyasəti Azərbaycan Respublikasının qanunlarına uyğun olaraq tənzimlənir və şərh edilir.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Son yenilənmə: 18 May 2025</p>
+        </div>
+    </div>
+</body>
+</html> 
