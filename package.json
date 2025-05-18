@@ -16,7 +16,8 @@
     "nodemailer": "^6.10.1",
     "sequelize": "6.37.7",
     "sqlite3": "5.1.7",
-    "web-push": "3.6.7"
+    "web-push": "3.6.7",
+    "connect-sqlite3": "^0.9.13"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
