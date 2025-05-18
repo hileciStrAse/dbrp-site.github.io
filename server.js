@@ -11,7 +11,6 @@ const cookieParser = require('cookie-parser');
 const ActivityServiceClass = require('./services/activityService');
 const passport = require('passport');
 const { DiscordStrategy } = require('passport-discord');
-const fetch = require('node-fetch');
 require('dotenv').config();
 
 // Discord bot client instance (başqa fayldan ötürüləcək)
