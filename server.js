@@ -32,14 +32,16 @@ app.use(session({
         db: 'sessions.sqlite',
         dir: './'
     }),
-    secret: 'dbrp_admin_panel_2024_secure_session_key_123456789', // Birbaşa dəyər
+    secret: 'dbrp_admin_panel_2024_secure_session_key_123456789',
     resave: true,
     saveUninitialized: true,
     cookie: { 
         secure: false,
         maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
-        sameSite: 'lax'
+        sameSite: 'lax',
+        domain: 'dbrpbot.onrender.com',
+        path: '/'
     }
 }));
 
