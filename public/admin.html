@@ -1,437 +1,464 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const nodemailer = require('nodemailer');
-const fs = require('fs');
-const webpush = require('web-push');
-const { Sequelize, DataTypes } = require('sequelize');
-const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
-const ActivityServiceClass = require('./services/activityService');
-require('dotenv').config();
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBRP - Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #00c8ff;
+            --secondary: #0095ff;
+            --dark: #0f172a;
+            --darker: #0a1120;
+            --light: #f8fafc;
+            --glass: rgba(15, 23, 42, 0.7);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            --border: rgba(255, 255, 255, 0.15);
+            --glow: rgba(0, 200, 255, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(145deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
 
-// Autentifikasiya middleware funksiyası
-const ensureAuthenticated = (req, res, next) => {
-    if (!req.session.discordId) {
-        return res.status(401).json({ error: 'Giriş icazəniz yoxdur.' });
-    }
-    next();
-};
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
 
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './database.sqlite'
-});
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-const app = express();
-const port = process.env.PORT || 5001;
+        .admin-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
 
-// Sessiya konfiqurasiyası
-app.use(session({
-    store: new SQLiteStore({
-        db: 'sessions.sqlite',
-        dir: './'
-    }),
-    secret: process.env.SESSION_SECRET || 'your_default_secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { 
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 // 24 saat
-    }
-}));
+        .admin-section h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
 
-// CORS ayarları
-app.use(cors());
+        .form-group {
+            margin-bottom: 20px;
+        }
 
-// JSON ve URL-encoded verileri işleme
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
 
-// Statik dosyalar için public klasörünü kullan
-app.use(express.static(path.join(__dirname, 'public')));
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--light);
+            font-size: 1rem;
+            resize: vertical;
+        }
 
-// Modelləri daxil edin və başlatın
-const Admin = require('./models/Admin')(sequelize, DataTypes);
-const ConnectedUser = require('./models/ConnectedUser')(sequelize, DataTypes);
-const Activity = require('./models/Activity')(sequelize, DataTypes);
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
 
-// ActivityService instansiyasını yaradın və Activity modelini ötürün
-const ActivityService = new ActivityServiceClass(Activity);
+        .btn:hover {
+            opacity: 0.9;
+        }
 
-// Verilənlər bazasını sinxronizasiya et
-async function syncDatabase() {
-    try {
-        await sequelize.sync();
-        console.log('Database synced successfully.');
-        const initialAdminId = process.env.ADMIN_DISCORD_ID;
-        if (initialAdminId) {
-            const existingAdmin = await Admin.findOne({ where: { discordId: initialAdminId } });
-            if (!existingAdmin) {
-                await Admin.create({ discordId: initialAdminId });
-                console.log(`Initial admin ${initialAdminId} added to database.`);
+        .btn-danger {
+            background: linear-gradient(90deg, var(--danger), #c53030);
+        }
+        
+        .btn-danger:hover {
+             opacity: 0.9;
+        }
+
+        .list-group {
+            list-style: none;
+            padding: 0;
+        }
+
+        .list-item {
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item span {
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+
+        .list-item .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+
+        .list-item .delete-btn:hover {
+            color: #e53e3e;
+        }
+
+        .activity-item {
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .activity-item strong {
+            color: var(--primary);
+        }
+
+        .activity-item p {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .activity-item small {
+            display: block;
+            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 20px;
+                padding: 15px;
+            }
+            .admin-section {
+                padding: 15px;
+            }
+            .list-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .list-item span {
+                margin-right: 0;
+                margin-bottom: 10px;
             }
         }
-    } catch (error) {
-        console.error('Error syncing database:', error);
-    }
-}
 
-syncDatabase();
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
 
-// Ana sayfa route'u
-app.get('/', (req, res) => {
-    const indexPath = path.join(__dirname, 'public', 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.status(404).send('index.html tapılmadı');
-    }
-});
+        <!-- Elan İdarəetməsi -->
+        <div class="admin-section">
+            <h2>Elan İdarəetməsi</h2>
+            <div class="form-group">
+                <label for="announcementTitle">Elan Başlığı:</label>
+                <input type="text" id="announcementTitle">
+            </div>
+            <div class="form-group">
+                <label for="announcementMessage">Elan Mətni:</label>
+                <textarea id="announcementMessage" rows="4"></textarea>
+            </div>
+            <button class="btn" onclick="sendAnnouncement()">Elan Göndər</button>
 
-// Xidmət şərtləri route'u
-app.get('/terms', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'terms.html'));
-});
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">Mövcud Elanlar</h3>
+            <ul class="list-group" id="announcementList"></ul>
+        </div>
 
-// Məxfilik siyasəti route'u
-app.get('/privacy', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
-});
+        <!-- Fəaliyyət İdarəetməsi -->
+        <div class="admin-section">
+            <h2>Fəaliyyət İdarəetməsi</h2>
+            <h3 style="margin-bottom: 15px;">Son Fəaliyyətlər</h3>
+            <div id="activityList"></div>
+            <button class="btn btn-danger" onclick="clearAllActivities()" style="margin-top: 20px;">Bütün Fəaliyyətləri Sil</button>
+        </div>
 
-// Emrler route'u
-app.get('/emrler', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'emrler.html'));
-});
+        <!-- Bağlı İstifadəçilər -->
+        <div class="admin-section">
+            <h2>Bağlı İstifadəçilər</h2>
+            <div class="connected-users-search">
+                <input type="text" id="discordIdSearchInput" placeholder="Discord ID ilə axtarış">
+                <button id="searchUserButton">Axtar</button>
+            </div>
+            <ul id="connectedUsersList">
+                <!-- Connected users will be listed here -->
+            </ul>
+        </div>
 
-// Kontakt route'u
-app.get('/kontakt', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'kontakt.html'));
-});
+    </div>
 
-// Kontakt formu üçün email göndərən endpoint
-app.post('/api/contact', async (req, res) => {
-    const { name, email, message } = req.body;
-    if (!name || !email || !message) {
-        return res.status(400).json({ success: false, error: 'Bütün sahələr doldurulmalıdır.' });
-    }
-    try {
-        // Nodemailer transporter (gmail üçün)
-        let transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: 'adeadem123321@gmail.com',
-                pass: 'afal slaf hysp xlzj' // Burada Gmail üçün App Password istifadə edilməlidir!
+    <script>
+        // API endpointlərinin URL-ləri
+        const API_URL = window.location.origin + '/api';
+
+        // Elanları yüklə
+        async function loadAnnouncements() {
+            try {
+                const res = await fetch(API_URL + '/announcements');
+                const announcements = await res.json();
+                const announcementList = document.getElementById('announcementList');
+                announcementList.innerHTML = ''; // Siyahını təmizlə
+                announcements.forEach(ann => {
+                    const li = document.createElement('li');
+                    li.className = 'list-item';
+                    li.innerHTML = `
+                        <span><strong>${ann.title}:</strong> ${ann.message} (${new Date(ann.date).toLocaleString('az-AZ')})</span>
+                        <button class="delete-btn" onclick="deleteAnnouncement('${ann._id}')"><i class="fas fa-trash"></i></button>
+                    `;
+                    announcementList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Elanlar yüklənərkən xəta:', error);
             }
-        });
-        await transporter.sendMail({
-            from: email,
-            to: 'adeadem123321@gmail.com',
-            replyTo: email,
-            subject: `Yeni Kontakt Mesajı - ${name}`,
-            text: `Ad: ${name}\nEmail: ${email}\nMesaj: ${message}`,
-            html: `<b>Ad:</b> ${name}<br><b>Email:</b> ${email}<br><b>Mesaj:</b><br>${message}`
-        });
-        res.json({ success: true });
-    } catch (err) {
-        console.error('Email göndərilərkən xəta:', err);
-        res.status(500).json({ success: false, error: 'Email göndərilə bilmədi.' });
-    }
-});
-
-// Fəaliyyətləri əldə et
-app.get('/api/activities', async (req, res) => {
-    const { limit = 20, skip = 0, serverId } = req.query;
-    if (!serverId) {
-        return res.status(400).json({ success: false, error: 'Server ID daxil edilməlidir.' });
-    }
-    try {
-        const activities = await ActivityService.getServerActivities(serverId, parseInt(limit), parseInt(skip));
-        res.json(activities);
-    } catch (error) {
-        console.error('Fəaliyyətlər əldə edilərkən xəta:', error);
-        res.status(500).json({ success: false, error: 'Fəaliyyətlər əldə edilərkən xəta baş verdi.' });
-    }
-});
-
-// Yeni fəaliyyət əlavə et (Bu endpoint ehtimal ki, artıq bot tərəfindən idarə olunur)
-// app.post('/api/activities', async (req, res) => {
-//     res.status(405).json({ success: false, error: 'Bu endpoint istifadə edilmir.' });
-// });
-
-// Bütün fəaliyyətləri sil (Admin üçün)
-app.delete('/api/activities', ensureAuthenticated, async (req, res) => {
-    try {
-        const adminUser = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (!adminUser) {
-            return res.status(403).json({ success: false, error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
         }
 
-        await ActivityService.deleteAllActivities();
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Bütün fəaliyyətlər silinərkən xəta:', error);
-        res.status(500).json({ success: false, error: 'Bütün fəaliyyətlər silinərkən xəta baş verdi.' });
-    }
-});
+        // Elanı göndər
+        async function sendAnnouncement() {
+            const title = document.getElementById('announcementTitle').value;
+            const message = document.getElementById('announcementMessage').value;
 
-// VAPID açarlarını bura əlavə et (öz açarlarınla əvəz et)
-webpush.setVapidDetails(
-  'mailto:adeadem123321@gmail.com',
-  'BF_gMcKgs2qIU5L028tm1dM-GutD60RlEjAuqsZEjT9wudyvxrTCdUf_-ERupEtl_JeJMEw53i_t-MOVa_1b1AI',   // publicKey
-  'cqgyT5FPm7ArwccmH3UiDLxUpqtTmkxuos7E0l2OW-k'   // privateKey
-);
-
-const subsFile = './subscriptions.json';
-const announcementsFile = './announcements.json';
-
-// Abunə əlavə et
-app.post('/api/subscribe', (req, res) => {
-    const sub = req.body;
-    let subscriptions = [];
-    if (fs.existsSync(subsFile)) {
-        subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
-    }
-    if (!subscriptions.find(s => JSON.stringify(s) === JSON.stringify(sub))) {
-        subscriptions.push(sub);
-        fs.writeFileSync(subsFile, JSON.stringify(subscriptions, null, 2));
-    }
-    res.status(201).json({});
-});
-
-// Duyuruları oxu
-app.get('/api/announcements', (req, res) => {
-    if (fs.existsSync(announcementsFile)) {
-        const data = fs.readFileSync(announcementsFile, 'utf-8');
-        res.json(JSON.parse(data));
-    } else {
-        res.json([]);
-    }
-});
-
-// Yeni duyuru əlavə et və push göndər
-app.post('/api/announcements', (req, res) => {
-    const { title, message, date } = req.body;
-    if (!title || !message || !date) {
-        return res.status(400).json({ success: false, error: 'Bütün sahələr doldurulmalıdır.' });
-    }
-    let announcements = [];
-    if (fs.existsSync(announcementsFile)) {
-        announcements = JSON.parse(fs.readFileSync(announcementsFile, 'utf-8'));
-    }
-    const newAnn = { id: Date.now().toString(), title, message, date };
-    announcements.unshift(newAnn);
-    fs.writeFileSync(announcementsFile, JSON.stringify(announcements, null, 2));
-
-    // Push notification göndər
-    let subscriptions = [];
-    if (fs.existsSync(subsFile)) {
-        subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
-    }
-    const payload = JSON.stringify({ title, message });
-    subscriptions.forEach(sub => {
-        webpush.sendNotification(sub, payload).catch(err => console.error(err));
-    });
-
-    res.json({ success: true });
-});
-
-// Admin paneli üçün duyuru yönetimi endpoint'ləri (Database ilə)
-app.get('/api/admin/announcements', async (req, res) => {
-    try {
-        const announcements = await AnnouncementService.getAllAnnouncements();
-        res.json(announcements);
-    } catch (error) {
-        console.error('Elanlar əldə edilərkən xəta:', error);
-        res.status(500).json({ success: false, error: 'Elanlar əldə edilərkən xəta baş verdi.' });
-    }
-});
-
-app.post('/api/announcements', async (req, res) => {
-    const { title, message } = req.body;
-    if (!title || !message) {
-        return res.status(400).json({ success: false, error: 'Başlıq və mətn daxil edilməlidir.' });
-    }
-    try {
-        const newAnn = await AnnouncementService.createAnnouncement(title, message);
-
-        // Push notification göndər
-        let subscriptions = [];
-        if (fs.existsSync(subsFile)) {
-            subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
-        }
-        const payload = JSON.stringify({ title, message });
-        subscriptions.forEach(sub => {
-            webpush.sendNotification(sub, payload).catch(err => console.error(err));
-        });
-
-        res.json({ success: true, announcement: newAnn });
-    } catch (error) {
-        console.error('Elan göndərilərkən xəta:', error);
-        res.status(500).json({ success: false, error: 'Elan göndərilərkən xəta baş verdi.' });
-    }
-});
-
-app.delete('/api/admin/announcements/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const result = await AnnouncementService.deleteAnnouncement(id);
-        if (result) {
-            res.json({ success: true });
-        } else {
-            res.status(404).json({ success: false, error: 'Elan tapılmadı.' });
-        }
-    } catch (error) {
-        console.error('Elan silinərkən xəta:', error);
-        res.status(500).json({ success: false, error: 'Elan silinərkən xəta baş verdi.' });
-    }
-});
-
-// Admin səhifəsinə girişi yoxlayan middleware
-app.get('/admin.html', async (req, res, next) => {
-    try {
-        // Sessiyada discordId yoxdursa və ya ADMIN_DISCORD_ID ilə uyğun gəlmirsə
-        if (!req.session.discordId) {
-            return res.redirect('/auth/discord');
-        }
-
-        // Admin cədvəlində yoxla
-        const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (!admin) {
-            return res.status(403).send('Bu səhifəyə giriş üçün icazəniz yoxdur.');
-        }
-
-        // Əgər admin-dirsə, səhifəni göstər
-        const adminPath = path.join(__dirname, 'public', 'admin.html');
-        if (fs.existsSync(adminPath)) {
-            res.sendFile(adminPath);
-        } else {
-            res.status(404).send('admin.html tapılmadı');
-        }
-    } catch (error) {
-        console.error('Admin paneli yoxlama xətası:', error);
-        res.status(500).send('Server xətası baş verdi.');
-    }
-});
-
-// Admin API endpointləri üçün middleware
-app.use('/api/admin', async (req, res, next) => {
-    try {
-        if (!req.session.discordId) {
-            return res.status(401).json({ error: 'Giriş icazəniz yoxdur.' });
-        }
-
-        const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (!admin) {
-            return res.status(403).json({ error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
-        }
-
-        next();
-    } catch (error) {
-        console.error('Admin API yoxlama xətası:', error);
-        res.status(500).json({ error: 'Server xətası baş verdi.' });
-    }
-});
-
-// Get all connected users
-app.get('/api/admin/connected-users', ensureAuthenticated, async (req, res) => {
-    try {
-        const users = await ConnectedUser.findAll();
-        res.json(users);
-    } catch (error) {
-        console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
-        res.status(500).json({ error: 'Daxili Server Xətası' });
-    }
-});
-
-// Search connected users by Discord ID
-app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, res) => {
-    const { discordId } = req.query;
-    if (!discordId) {
-        return res.status(400).json({ error: 'Discord ID tələb olunur.' });
-    }
-
-    try {
-        const user = await ConnectedUser.findOne({
-            where: {
-                discordId: discordId
+            if (!title || !message) {
+                alert('Zəhmət olmasa, elan başlığı və mətnini daxil edin.');
+                return;
             }
-        });
-        res.json(user ? [user] : []);
-    } catch (error) {
-        console.error(`Discord ID ${discordId} ilə istifadəçi axtarışı xətası:`, error);
-        res.status(500).json({ error: 'Daxili Server Xətası' });
-    }
-});
 
-// Discord OAuth2 endpoint'ləri
-app.get('/auth/discord', (req, res) => {
-    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=${encodeURIComponent(process.env.DISCORD_REDIRECT_URI)}&scope=identify+guilds`;
-    res.redirect(discordAuthUrl);
-});
-
-app.get('/auth/discord/callback', async (req, res) => {
-    const code = req.query.code;
-    if (!code) {
-        return res.status(400).send('Discord OAuth2 kodu alınmadı.');
-    }
-
-    try {
-        const oauth2Data = new URLSearchParams({
-            client_id: process.env.DISCORD_CLIENT_ID,
-            client_secret: process.env.DISCORD_CLIENT_SECRET,
-            code: code,
-            grant_type: 'authorization_code',
-            redirect_uri: process.env.DISCORD_REDIRECT_URI,
-            scope: 'identify',
-        });
-
-        const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-            method: 'POST',
-            body: oauth2Data,
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-        });
-
-        const oauth2 = await tokenResponse.json();
-
-        if (oauth2.error) {
-            console.error('Discord OAuth2 token xətası:', oauth2.error);
-            return res.status(400).send('Discord OAuth2 token alınmadı.');
-        }
-
-        const userResponse = await fetch('https://discord.com/api/users/@me', {
-            headers: {
-                authorization: `${oauth2.token_type} ${oauth2.access_token}`,
-            },
-        });
-
-        const user = await userResponse.json();
-
-        req.session.discordId = user.id;
-
-        const [connectedUser, created] = await ConnectedUser.findOrCreate({
-            where: { discordId: user.id },
-            defaults: {
-                username: user.username
+            try {
+                const res = await fetch(API_URL + '/announcements', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, message, date: new Date().toISOString() })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Elan uğurla göndərildi!');
+                    document.getElementById('announcementTitle').value = '';
+                    document.getElementById('announcementMessage').value = '';
+                    loadAnnouncements(); // Siyahını yenilə
+                } else {
+                    alert('Elan göndərilərkən xəta baş verdi.');
+                }
+            } catch (error) {
+                console.error('Elan göndərilərkən xəta:', error);
+                alert('Elan göndərilərkən xəta baş verdi.');
             }
-        });
-
-        if (user.id === process.env.ADMIN_DISCORD_ID) {
-            res.redirect('/admin');
-        } else {
-            res.redirect('/');
         }
 
-    } catch (error) {
-        console.error('Discord OAuth2 callback xətası:', error);
-        res.status(500).send('Discord OAuth2 callback xətası baş verdi.');
-    }
-});
+        // Elanı sil
+        async function deleteAnnouncement(id) {
+            if (confirm('Bu elanı silmək istədiyinizə əminsiniz?')) {
+                try {
+                    const res = await fetch(`${API_URL}/admin/announcements/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert('Elan uğurla silindi.');
+                        loadAnnouncements(); // Siyahını yenilə
+                    } else {
+                        alert('Elan silinərkən xəta baş verdi.');
+                    }
+                } catch (error) {
+                    console.error('Elan silinərkən xəta:', error);
+                    alert('Elan silinərkən xəta baş verdi.');
+                }
+            }
+        }
 
-app.listen(port, () => {
-    console.log(`Server ${port} portunda işləyir`);
-});
+        // Fəaliyyətləri yüklə
+        async function loadActivities() {
+            try {
+                // Server ID-ni sorğu parametrindən al
+                const urlParams = new URLSearchParams(window.location.search);
+                const serverId = urlParams.get('serverId');
+                
+                if (!serverId) {
+                    document.getElementById('activityList').innerHTML = '<div class="activity-item">Server ID təyin edilməyib.</div>';
+                    return;
+                }
 
-module.exports = { app, sequelize }; 
+                const res = await fetch(`${API_URL}/activities?limit=20&serverId=${serverId}`);
+                if (!res.ok) {
+                    throw new Error('Fəaliyyətlər yüklənərkən xəta baş verdi');
+                }
+                
+                const activities = await res.json();
+                const activityList = document.getElementById('activityList');
+                activityList.innerHTML = ''; // Siyahını təmizlə
+                
+                if (activities.length === 0) {
+                    activityList.innerHTML = '<div class="activity-item">Heç bir fəaliyyət tapılmadı.</div>';
+                    return;
+                }
+
+                activities.forEach(activity => {
+                    const div = document.createElement('div');
+                    div.className = 'activity-item';
+                    div.innerHTML = `
+                        <strong>${activity.username} - ${activity.action}</strong>
+                        <p>${activity.details}</p>
+                        <small>${new Date(activity.timestamp).toLocaleString('az-AZ')}</small>
+                    `;
+                    activityList.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Fəaliyyətlər yüklənərkən xəta:', error);
+                document.getElementById('activityList').innerHTML = '<div class="activity-item" style="color: var(--danger);">Fəaliyyətlər yüklənərkən xəta baş verdi.</div>';
+            }
+        }
+
+        // Bütün fəaliyyətləri təmizlə
+        async function clearAllActivities() {
+            if (confirm('Bütün fəaliyyətləri silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.')) {
+                try {
+                    const res = await fetch(API_URL + '/activities', {
+                        method: 'DELETE'
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert('Bütün fəaliyyətlər uğurla silindi.');
+                        loadActivities(); // Siyahını yenilə
+                    } else {
+                        alert('Fəaliyyətlər silinərkən xəta baş verdi.');
+                    }
+                } catch (error) {
+                    console.error('Fəaliyyətlər silinərkən xəta:', error);
+                    alert('Fəaliyyətlər silinərkən xəta baş verdi.');
+                }
+            }
+        }
+
+        // Bağlı istifadəçiləri yüklə
+        async function loadConnectedUsers() {
+            try {
+                const res = await fetch(API_URL + '/admin/connected-users');
+                const connectedUsers = await res.json();
+                const connectedUsersList = document.getElementById('connectedUsersList');
+                connectedUsersList.innerHTML = ''; // Siyahını təmizlə
+
+                if (connectedUsers.length === 0) {
+                    connectedUsersList.innerHTML = '<li class="list-item">Heç bir bağlı istifadəçi yoxdur.</li>';
+                    return;
+                }
+
+                connectedUsers.forEach(user => {
+                    const li = document.createElement('li');
+                    li.className = 'list-item';
+                    li.innerHTML = `
+                        <span><strong>${user.username}</strong> (ID: ${user.discordId}) - Qoşulma Tarixi: ${new Date(user.connectedAt).toLocaleString('az-AZ')}</span>
+                    `;
+                    connectedUsersList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Bağlı istifadəçilər yüklənərkən xəta:', error);
+                const connectedUsersList = document.getElementById('connectedUsersList');
+                connectedUsersList.innerHTML = '<li class="list-item" style="color: var(--danger);">Bağlı istifadəçilər yüklənərkən xəta baş verdi.</li>';
+            }
+        }
+
+        // Səhifə yükləndikdə elanları, fəaliyyətləri və bağlı istifadəçiləri yüklə
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAnnouncements();
+            loadActivities();
+            loadConnectedUsers(); // Yeni: Bağlı istifadəçiləri yüklə
+        });
+
+        document.getElementById('searchUserButton').addEventListener('click', fetchConnectedUsers);
+
+        async function fetchConnectedUsers() {
+            const discordId = document.getElementById('discordIdSearchInput').value;
+            let url = '/api/admin/connected-users';
+            if (discordId) {
+                url = `/api/admin/connected-users/search?discordId=${discordId}`;
+            }
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP xətası! Status: ${response.status}`);
+                }
+                const users = await response.json();
+                displayConnectedUsers(users);
+            } catch (error) {
+                console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
+                const usersList = document.getElementById('connectedUsersList');
+                usersList.innerHTML = '<li>İstifadəçilər yüklənərkən xəta baş verdi.</li>';
+            }
+        }
+
+        function displayConnectedUsers(users) {
+            const usersList = document.getElementById('connectedUsersList');
+            usersList.innerHTML = ''; // Clear current list
+
+            if (users.length === 0) {
+                usersList.innerHTML = '<li>İstifadəçi tapılmadı.</li>';
+                return;
+            }
+
+            users.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `Discord ID: ${user.discordId}, Username: ${user.discordUsername || 'N/A'}`;
+                usersList.appendChild(listItem);
+            });
+        }
+
+        // Load users when the page loads
+        fetchConnectedUsers();
+
+    </script>
+</body>
+</html> 
