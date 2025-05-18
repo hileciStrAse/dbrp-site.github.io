@@ -4,11 +4,35 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const webpush = require('web-push');
+const { Sequelize, DataTypes } = require('sequelize');
+const session = require('express-session');
 require('dotenv').config();
+
+const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: './database.sqlite'
+});
 
 const app = express();
 const port = process.env.PORT || 5001;
-const activitiesFile = './activities.json';
+
+// SQLite verilənlər bazası bağlantısı
+// const sequelize = new Sequelize({
+//     dialect: 'sqlite',
+//     storage: './database.sqlite' // Verilənlər bazası faylının yolu
+// });
+
+// Modelləri daxil edin və başlatın
+const Admin = require('./models/Admin')(sequelize, DataTypes); // Admin modelini daxil edin
+const ConnectedUser = require('./models/ConnectedUser')(sequelize, DataTypes); // ConnectedUser modelini daxil edin
+
+// Sessiya konfiqurasiyası
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your_default_secret', // Çox güclü bir secret istifadə edin
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production' } // HTTPS istifadə edirsinizsə 'secure: true' edin
+}));
 
 // CORS ayarları
 app.use(cors());
@@ -19,6 +43,36 @@ app.use(express.urlencoded({ extended: true }));
 
 // Statik dosyalar için public klasörünü kullan
 app.use(express.static('public'));
+
+// Verilənlər bazası modeli (Admin)
+// const Admin = sequelize.define('Admin', {
+//     discordId: {
+//         type: DataTypes.STRING,
+//         unique: true,
+//         allowNull: false
+//     }
+// });
+
+// Verilənlər bazasını sinxronizasiya et
+async function syncDatabase() {
+    try {
+        await sequelize.sync();
+        console.log('Database synced successfully.');
+        // Başlanğıc admin ID-lərini əlavə edin (əgər yoxdursa)
+        const initialAdminId = process.env.ADMIN_DISCORD_ID; // .env faylında təyin edin
+        if (initialAdminId) {
+            const existingAdmin = await Admin.findOne({ where: { discordId: initialAdminId } });
+            if (!existingAdmin) {
+                await Admin.create({ discordId: initialAdminId });
+                console.log(`Initial admin ${initialAdminId} added to database.`);
+            }
+        }
+    } catch (error) {
+        console.error('Error syncing database:', error);
+    }
+}
+
+syncDatabase();
 
 // Ana sayfa route'u
 app.get('/', (req, res) => {
@@ -231,6 +285,124 @@ app.delete('/api/activities', async (req, res) => {
     } catch (error) {
         console.error('Bütün fəaliyyətlər silinərkən xəta:', error);
         res.status(500).json({ success: false, error: 'Bütün fəaliyyətlər silinərkən xəta baş verdi.' });
+    }
+});
+
+// Discord OAuth2 endpoint'ləri
+app.get('/auth/discord', (req, res) => {
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.DISCORD_REDIRECT_URI)}&response_type=code&scope=identify`;
+    res.redirect(discordAuthUrl);
+});
+
+app.get('/auth/discord/callback', async (req, res) => {
+    const code = req.query.code;
+    if (!code) {
+        return res.status(400).send('Discord OAuth2 kodu alınmadı.');
+    }
+
+    try {
+        const oauth2Data = new URLSearchParams({
+            client_id: process.env.DISCORD_CLIENT_ID,
+            client_secret: process.env.DISCORD_CLIENT_SECRET,
+            code: code,
+            grant_type: 'authorization_code',
+            redirect_uri: process.env.DISCORD_REDIRECT_URI,
+            scope: 'identify',
+        });
+
+        const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+            method: 'POST',
+            body: oauth2Data,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
+
+        const oauth2 = await tokenResponse.json();
+
+        if (oauth2.error) {
+            console.error('Discord OAuth2 token xətası:', oauth2.error);
+            return res.status(400).send('Discord OAuth2 token alınmadı.');
+        }
+
+        const userResponse = await fetch('https://discord.com/api/users/@me', {
+            headers: {
+                authorization: `${oauth2.token_type} ${oauth2.access_token}`,
+            },
+        });
+
+        const user = await userResponse.json();
+
+        // İstifadəçi ID-sini sessiyaya əlavə edin
+        req.session.discordId = user.id;
+
+        // İstifadəçi məlumatlarını ConnectedUser cədvəlinə əlavə edin (əgər yoxdursa)
+        const [connectedUser, created] = await ConnectedUser.findOrCreate({
+            where: { discordId: user.id },
+            defaults: {
+                username: user.username // Və ya user.global_name
+            }
+        });
+
+        // İstifadəçini ana səhifəyə və ya admin panelinə yönləndirin
+        // Yalnız .env-də təyin olunmuş ADMIN_DISCORD_ID sahibidirsə admin paneline yönləndir
+        if (user.id === process.env.ADMIN_DISCORD_ID) {
+             res.redirect('/admin');
+        } else {
+             res.redirect('/');
+        }
+
+    } catch (error) {
+        console.error('Discord OAuth2 callback xətası:', error);
+        res.status(500).send('Discord OAuth2 callback xətası baş verdi.');
+    }
+});
+
+// Admin paneli route (Autentifikasiya yoxlaması ilə)
+app.get('/admin', async (req, res) => {
+    // Sessiyada Discord ID-nin olub olmadığını yoxla
+    if (!req.session.discordId) {
+        // Yoxdursa, istifadəçini Discord OAuth2-ə yönləndir
+        return res.redirect('/auth/discord');
+    }
+
+    try {
+        // Discord ID-nin admin olub olmadığını verilənlər bazasında yoxla
+        const adminUser = await Admin.findOne({ where: { discordId: req.session.discordId } });
+
+        if (adminUser) {
+            // Admindirsə, admin panelini göstər
+            res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+        } else {
+            // Admin deyilsə, icazənin olmadığını bildir
+            res.status(403).send('Bu səhifəyə giriş icazəniz yoxdur.');
+        }
+    } catch (error) {
+        console.error('Admin paneli autentifikasiya xətası:', error);
+        res.status(500).send('Server xətası baş verdi.');
+    }
+});
+
+// Bağlı İstifadəçilər endpoint'i (Database ilə, Admin üçün)
+app.get('/api/admin/connected-users', async (req, res) => {
+    // Admin autentifikasiyasını yoxla
+    if (!req.session.discordId) {
+        return res.status(401).json({ success: false, error: 'Giriş icazəniz yoxdur.' });
+    }
+    try {
+        const adminUser = await Admin.findOne({ where: { discordId: req.session.discordId } });
+        if (!adminUser) {
+            return res.status(403).json({ success: false, error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
+        }
+
+        const connectedUsers = await ConnectedUser.findAll({
+            attributes: ['discordId', 'username', 'connectedAt'],
+            order: [['connectedAt', 'DESC']]
+        });
+        res.json(connectedUsers);
+    } catch (error) {
+        console.error('Bağlı istifadəçilər əldə edilərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Bağlı istifadəçilər əldə edilərkən xəta baş verdi.' });
     }
 });
 
