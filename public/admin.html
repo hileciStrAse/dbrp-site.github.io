@@ -322,13 +322,29 @@
         // Fəaliyyətləri yüklə
         async function loadActivities() {
             try {
-                // Yalnız son 20 fəaliyyəti yüklə
-                // Server ID-ni sorğuya əlavə edin (Burada hansı server ID-sinin istifadə olunacağını müəyyən etməlisiniz)
-                const serverId = 'YOUR_SERVER_ID'; // <!---- Burada YOUR_SERVER_ID yerinə botunuzun fəaliyyətlərini görmək istədiyiniz serverin ID-sini yazın ---->
+                // Server ID-ni sorğu parametrindən al
+                const urlParams = new URLSearchParams(window.location.search);
+                const serverId = urlParams.get('serverId');
+                
+                if (!serverId) {
+                    document.getElementById('activityList').innerHTML = '<div class="activity-item">Server ID təyin edilməyib.</div>';
+                    return;
+                }
+
                 const res = await fetch(`${API_URL}/activities?limit=20&serverId=${serverId}`);
+                if (!res.ok) {
+                    throw new Error('Fəaliyyətlər yüklənərkən xəta baş verdi');
+                }
+                
                 const activities = await res.json();
                 const activityList = document.getElementById('activityList');
                 activityList.innerHTML = ''; // Siyahını təmizlə
+                
+                if (activities.length === 0) {
+                    activityList.innerHTML = '<div class="activity-item">Heç bir fəaliyyət tapılmadı.</div>';
+                    return;
+                }
+
                 activities.forEach(activity => {
                     const div = document.createElement('div');
                     div.className = 'activity-item';
@@ -341,6 +357,7 @@
                 });
             } catch (error) {
                 console.error('Fəaliyyətlər yüklənərkən xəta:', error);
+                document.getElementById('activityList').innerHTML = '<div class="activity-item" style="color: var(--danger);">Fəaliyyətlər yüklənərkən xəta baş verdi.</div>';
             }
         }
 
