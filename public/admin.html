@@ -641,9 +641,9 @@
         </div>
         <ul>
             <li><a href="/"><i class="fas fa-home"></i>Dashboard</a></li>
-            <li><a href="/emrler"><i class="fas fa-code"></i>Əmrlər</a></li>
-            <li><a href="/kontakt"><i class="fas fa-envelope"></i>Kontakt</a></li>
-            <li><a href="/admin" class="active"><i class="fas fa-user-shield"></i>Admin</a></li>
+            <li><a href="/emrler.html"><i class="fas fa-code"></i>Əmrlər</a></li>
+            <li><a href="/kontakt.html"><i class="fas fa-envelope"></i>Kontakt</a></li>
+            <li><a href="/admin.html" class="active"><i class="fas fa-user-shield"></i>Admin</a></li>
         </ul>
     </nav>
 
@@ -741,15 +741,19 @@
         });
 
         // Password check
-        function checkPassword() {
+        async function checkPassword() {
             const password = document.getElementById('passwordInput').value;
-            const correctPassword = 's3cr3tDBRP2025';
             const errorMessage = document.getElementById('errorMessage');
             const passwordPrompt = document.getElementById('passwordPrompt');
             const activityForm = document.getElementById('activityForm');
             const activityListSection = document.getElementById('activityListSection');
-
-            if (password === correctPassword) {
+            const res = await fetch('/api/admin-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            const data = await res.json();
+            if (data.success) {
                 passwordPrompt.style.display = 'none';
                 activityForm.style.display = 'flex';
                 activityListSection.style.display = 'block';
