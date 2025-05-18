@@ -404,6 +404,22 @@ app.get('/auth/discord/callback', async (req, res) => {
     }
 });
 
+// Admin səhifəsinə girişi yoxlayan middleware
+app.use('/admin.html', (req, res, next) => {
+    if (!req.session.user || req.session.user.discordId !== process.env.ADMIN_DISCORD_ID) {
+        return res.status(403).send('Bu səhifəyə giriş üçün icazəniz yoxdur.');
+    }
+    next();
+});
+
+// Admin API endpointləri üçün middleware
+app.use('/api/admin', (req, res, next) => {
+    if (!req.session.user || req.session.user.discordId !== process.env.ADMIN_DISCORD_ID) {
+        return res.status(403).json({ error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
+    }
+    next();
+});
+
 app.listen(port, () => {
     console.log(`Server ${port} portunda işləyir`);
 });
