@@ -410,11 +410,23 @@
             }
         }
 
-        // Səhifə yükləndikdə elanları, fəaliyyətləri və bağlı istifadəçiləri yüklə
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAnnouncements();
-            loadActivities();
-            loadConnectedUsers(); // Yeni: Bağlı istifadəçiləri yüklə
+        // Səhifə yükləndikdə admin yoxlaması
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/admin/check');
+                if (!response.ok) {
+                    window.location.href = '/auth/discord';
+                    return;
+                }
+                
+                // Admin yoxlaması uğurlu olduqda məlumatları yüklə
+                loadAnnouncements();
+                loadActivities();
+                loadConnectedUsers();
+            } catch (error) {
+                console.error('Admin yoxlama xətası:', error);
+                window.location.href = '/auth/discord';
+            }
         });
 
         document.getElementById('searchUserButton').addEventListener('click', fetchConnectedUsers);
