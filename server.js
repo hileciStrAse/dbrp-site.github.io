@@ -4,6 +4,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const webpush = require('web-push');
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -148,6 +149,16 @@ app.post('/api/announcements', (req, res) => {
     });
 
     res.json({ success: true });
+});
+
+// Admin login endpoint
+app.post('/api/admin-login', (req, res) => {
+    const { password } = req.body;
+    if (password === process.env.ADMIN_PASSWORD) {
+        res.json({ success: true });
+    } else {
+        res.json({ success: false });
+    }
 });
 
 // Hata yakalama middleware'i
