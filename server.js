@@ -13,6 +13,9 @@ const passport = require('passport');
 const { DiscordStrategy } = require('passport-discord');
 require('dotenv').config();
 
+// Discord bot client instance (başqa fayldan ötürüləcək)
+let discordClient = null;
+
 // Autentifikasiya middleware funksiyası
 const ensureAuthenticated = (req, res, next) => {
     if (!req.session.discordId) {
@@ -577,8 +580,36 @@ app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, re
     }
 });
 
+// API endpoint to get list of servers (guilds)
+app.get('/api/servers', isAdmin, (req, res) => {
+    console.log('[/api/servers] endpointine istek geldi.');
+    // Bot client'ına app.locals üzerinden erişilir
+    if (!app.locals.discordClient) {
+        console.error('Discord client instance app.locals-da tapılmadı.');
+        return res.status(500).json({ error: 'Bot client instance mövcud deyil.' });
+    }
+
+    const servers = app.locals.discordClient.guilds.cache.map(guild => ({
+        id: guild.id,
+        name: guild.name
+    }));
+
+    res.json(servers);
+});
+
+// Admin panel route
+app.get('/admin', isAdmin, (req, res) => {
+    // ... existing code ...
+});
+
+// Bot client instansını təyin etmək üçün metod
+app.setDiscordClient = (client) => {
+    app.locals.discordClient = client;
+    console.log('Discord client instance app.locals-a təyin edildi.');
+};
+
 app.listen(port, () => {
     console.log(`Server ${port} portunda işləyir`);
 });
 
-module.exports = { app, sequelize }; 
+module.exports = { app, sequelize, discordClient }; 
