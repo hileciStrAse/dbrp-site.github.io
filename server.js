@@ -36,8 +36,8 @@ app.use(session({
     resave: true,
     saveUninitialized: true,
     cookie: { 
-        secure: false, // Development üçün false
-        maxAge: 1000 * 60 * 60 * 24, // 24 saat
+        secure: false,
+        maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
         sameSite: 'lax'
     }
@@ -289,66 +289,6 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
     }
 });
 
-// Admin yoxlaması üçün middleware
-const isAdmin = async (req, res, next) => {
-    try {
-        console.log('Session data:', req.session);
-        
-        // Sessiyanı yoxla
-        if (!req.session || !req.session.discordId) {
-            console.log('Sessiya tapılmadı, Discord girişinə yönləndirilir');
-            return res.redirect('/auth/discord');
-        }
-
-        console.log('Discord ID:', req.session.discordId);
-
-        // Admin cədvəlində yoxla
-        const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (admin) {
-            console.log('Admin tapıldı:', admin.discordId);
-            return next();
-        }
-
-        // Admin cədvəlində yoxdursa, .env faylında yoxla
-        if (req.session.discordId === process.env.ADMIN_DISCORD_ID) {
-            console.log('Admin .env faylında tapıldı, cədvələ əlavə edilir');
-            await Admin.create({ discordId: req.session.discordId });
-            return next();
-        }
-
-        console.log('Admin tapılmadı, ana səhifəyə yönləndirilir');
-        return res.redirect('/');
-
-    } catch (error) {
-        console.error('Admin yoxlama xətası:', error);
-        res.status(500).send('Server xətası baş verdi.');
-    }
-};
-
-// Admin səhifəsinə giriş
-app.get('/admin.html', isAdmin, (req, res) => {
-    const adminPath = path.join(__dirname, 'public', 'admin.html');
-    if (fs.existsSync(adminPath)) {
-        res.sendFile(adminPath);
-    } else {
-        res.status(404).send('admin.html tapılmadı');
-    }
-});
-
-// Admin API endpointləri
-app.use('/api/admin', isAdmin);
-
-// Admin yoxlama endpointi
-app.get('/api/admin/check', isAdmin, (req, res) => {
-    res.json({ success: true });
-});
-
-// Discord OAuth2 endpoint'ləri
-app.get('/auth/discord', (req, res) => {
-    const discordAuthUrl = 'https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2F&scope=identify+guilds';
-    res.redirect(discordAuthUrl);
-});
-
 // Discord OAuth2 callback
 app.get('/auth/discord/callback', async (req, res) => {
     const code = req.query.code;
@@ -427,6 +367,66 @@ app.get('/auth/discord/callback', async (req, res) => {
         console.error('Discord giriş xətası:', error);
         res.status(500).send('Giriş xətası baş verdi.');
     }
+});
+
+// Admin yoxlaması üçün middleware
+const isAdmin = async (req, res, next) => {
+    try {
+        console.log('Session data:', req.session);
+        
+        // Sessiyanı yoxla
+        if (!req.session || !req.session.discordId) {
+            console.log('Sessiya tapılmadı, Discord girişinə yönləndirilir');
+            return res.redirect('/auth/discord');
+        }
+
+        console.log('Discord ID:', req.session.discordId);
+
+        // Admin cədvəlində yoxla
+        const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
+        if (admin) {
+            console.log('Admin tapıldı:', admin.discordId);
+            return next();
+        }
+
+        // Admin cədvəlində yoxdursa, .env faylında yoxla
+        if (req.session.discordId === process.env.ADMIN_DISCORD_ID) {
+            console.log('Admin .env faylında tapıldı, cədvələ əlavə edilir');
+            await Admin.create({ discordId: req.session.discordId });
+            return next();
+        }
+
+        console.log('Admin tapılmadı, ana səhifəyə yönləndirilir');
+        return res.redirect('/');
+
+    } catch (error) {
+        console.error('Admin yoxlama xətası:', error);
+        res.status(500).send('Server xətası baş verdi.');
+    }
+};
+
+// Admin səhifəsinə giriş
+app.get('/admin.html', isAdmin, (req, res) => {
+    const adminPath = path.join(__dirname, 'public', 'admin.html');
+    if (fs.existsSync(adminPath)) {
+        res.sendFile(adminPath);
+    } else {
+        res.status(404).send('admin.html tapılmadı');
+    }
+});
+
+// Admin API endpointləri
+app.use('/api/admin', isAdmin);
+
+// Admin yoxlama endpointi
+app.get('/api/admin/check', isAdmin, (req, res) => {
+    res.json({ success: true });
+});
+
+// Discord OAuth2 endpoint'ləri
+app.get('/auth/discord', (req, res) => {
+    const discordAuthUrl = 'https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2F&scope=identify+guilds';
+    res.redirect(discordAuthUrl);
 });
 
 // Get all connected users
