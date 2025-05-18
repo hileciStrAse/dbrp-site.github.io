@@ -641,9 +641,9 @@
         </div>
         <ul>
             <li><a href="/"><i class="fas fa-home"></i>Dashboard</a></li>
-            <li><a href="/emrler.html"><i class="fas fa-code"></i>Əmrlər</a></li>
-            <li><a href="/kontakt.html"><i class="fas fa-envelope"></i>Kontakt</a></li>
-            <li><a href="/admin.html" class="active"><i class="fas fa-user-shield"></i>Admin</a></li>
+            <li><a href="/emrler"><i class="fas fa-code"></i>Əmrlər</a></li>
+            <li><a href="/kontakt"><i class="fas fa-envelope"></i>Kontakt</a></li>
+            <li><a href="/admin" class="active"><i class="fas fa-user-shield"></i>Admin</a></li>
         </ul>
     </nav>
 
@@ -890,6 +890,31 @@
             document.getElementById('submitButton').textContent = 'Fəaliyyət Əlavə Et';
             document.getElementById('cancelButton').style.display = 'none';
         }
+
+        async function addAnnouncement() {
+            const title = document.getElementById('announcementTitle').value;
+            const message = document.getElementById('announcementMessage').value;
+            const date = new Date().toISOString().slice(0, 10);
+            if (!title || !message) {
+                alert('Bütün sahələri doldurun!');
+                return;
+            }
+            const res = await fetch('/api/announcements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, message, date })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Duyuru uğurla göndərildi!');
+                document.getElementById('announcementTitle').value = '';
+                document.getElementById('announcementMessage').value = '';
+            } else {
+                alert('Xəta: ' + (data.error || 'Duyuru göndərilə bilmədi.'));
+            }
+        }
+
+        const publicVapidKey = 'BF_gMcKgs2qIU5L028tm1dM-GutD60RlEjAuqsZEjT9wudyvxrTCdUf_-ERupEtl_JeJMEw53i_t-MOVa_1b1AI';
     </script>
 </body>
 </html>
