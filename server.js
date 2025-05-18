@@ -360,7 +360,7 @@ app.get('/auth/discord/callback', async (req, res) => {
         // Sessiyanı yenilə
         req.session.discordId = userData.id;
         req.session.username = userData.username;
-        console.log('Callback: discordId və username sessiya obyektinə ƏLAVƏ EDİLDİ:', req.session);
+        console.log('Callback: Before session save, sessiya obyekti:', req.session);
 
         // Sessiyanı yadda saxla və yalnız yadda saxlandıqdan sonra davam et
         req.session.save(async (err) => {
