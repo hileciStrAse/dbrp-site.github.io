@@ -239,6 +239,115 @@
             display: block; /* Yükləmə bitdikdən sonra göstərilir */
         }
 
+        /* Bağlı İstifadəçilər bölməsi üçün yeni stillər */
+        .connected-users-search {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .connected-users-search input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--light);
+            font-size: 1rem;
+        }
+
+        .connected-users-search button {
+            padding: 10px 20px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .connected-users-search button:hover {
+            opacity: 0.9;
+        }
+
+        #connectedUsersList {
+            list-style: none;
+            padding: 0;
+        }
+
+        #connectedUsersList .list-item {
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #connectedUsersList .list-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-color: var(--primary);
+        }
+
+        #connectedUsersList .list-item .user-info {
+            flex-grow: 1;
+        }
+
+        #connectedUsersList .list-item .username {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        #connectedUsersList .list-item .discord-id {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        #connectedUsersList .list-item .connection-date {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        #connectedUsersList .list-item .user-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        #connectedUsersList .list-item .status-active {
+            background: var(--success);
+            color: white;
+        }
+
+        #connectedUsersList .list-item .status-inactive {
+            background: var(--warning);
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .connected-users-search {
+                flex-direction: column;
+            }
+            
+            #connectedUsersList .list-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            #connectedUsersList .list-item .user-status {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -517,13 +626,28 @@
             usersList.innerHTML = ''; // Clear current list
 
             if (users.length === 0) {
-                usersList.innerHTML = '<li>İstifadəçi tapılmadı.</li>';
+                usersList.innerHTML = '<li class="list-item">İstifadəçi tapılmadı.</li>';
                 return;
             }
 
             users.forEach(user => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `Discord ID: ${user.discordId}, Username: ${user.discordUsername || 'N/A'}`;
+                listItem.className = 'list-item';
+                
+                const connectionDate = new Date(user.connectedAt).toLocaleString('az-AZ');
+                const isActive = new Date(user.connectedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+                
+                listItem.innerHTML = `
+                    <div class="user-info">
+                        <div class="username">${user.discordUsername || 'İstifadəçi adı yoxdur'}</div>
+                        <div class="discord-id">Discord ID: ${user.discordId}</div>
+                        <div class="connection-date">Qoşulma tarixi: ${connectionDate}</div>
+                    </div>
+                    <div class="user-status ${isActive ? 'status-active' : 'status-inactive'}">
+                        ${isActive ? 'Aktiv' : 'Qeyri-aktiv'}
+                    </div>
+                `;
+                
                 usersList.appendChild(listItem);
             });
         }
