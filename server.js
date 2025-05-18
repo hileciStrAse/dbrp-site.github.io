@@ -408,4 +408,6 @@ app.get('/api/admin/connected-users', async (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server ${port} portunda işləyir`);
-}); 
+});
+
+module.exports = { app, sequelize }; 
