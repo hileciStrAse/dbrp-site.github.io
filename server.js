@@ -287,50 +287,40 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
     }
 });
 
-// Admin səhifəsinə girişi yoxlayan middleware
-app.get('/admin.html', async (req, res, next) => {
+// Admin yoxlaması üçün middleware
+const isAdmin = async (req, res, next) => {
     try {
-        // Sessiyada discordId yoxdursa və ya ADMIN_DISCORD_ID ilə uyğun gəlmirsə
         if (!req.session.discordId) {
             return res.redirect('/auth/discord');
         }
 
-        // Admin cədvəlində yoxla
         const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
         if (!admin) {
             return res.status(403).send('Bu səhifəyə giriş üçün icazəniz yoxdur.');
         }
-
-        // Əgər admin-dirsə, səhifəni göstər
-        const adminPath = path.join(__dirname, 'public', 'admin.html');
-        if (fs.existsSync(adminPath)) {
-            res.sendFile(adminPath);
-        } else {
-            res.status(404).send('admin.html tapılmadı');
-        }
+        next();
     } catch (error) {
-        console.error('Admin paneli yoxlama xətası:', error);
+        console.error('Admin yoxlama xətası:', error);
         res.status(500).send('Server xətası baş verdi.');
+    }
+};
+
+// Admin səhifəsinə giriş
+app.get('/admin.html', isAdmin, (req, res) => {
+    const adminPath = path.join(__dirname, 'public', 'admin.html');
+    if (fs.existsSync(adminPath)) {
+        res.sendFile(adminPath);
+    } else {
+        res.status(404).send('admin.html tapılmadı');
     }
 });
 
-// Admin API endpointləri üçün middleware
-app.use('/api/admin', async (req, res, next) => {
-    try {
-        if (!req.session.discordId) {
-            return res.status(401).json({ error: 'Giriş icazəniz yoxdur.' });
-        }
+// Admin API endpointləri
+app.use('/api/admin', isAdmin);
 
-        const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (!admin) {
-            return res.status(403).json({ error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
-        }
-
-        next();
-    } catch (error) {
-        console.error('Admin API yoxlama xətası:', error);
-        res.status(500).json({ error: 'Server xətası baş verdi.' });
-    }
+// Admin paneli route
+app.get('/admin', isAdmin, (req, res) => {
+    res.redirect('/admin.html');
 });
 
 // Get all connected users
@@ -428,6 +418,11 @@ app.get('/auth/discord/callback', async (req, res) => {
         console.error('Discord OAuth2 callback xətası:', error);
         res.status(500).send('Discord OAuth2 callback xətası baş verdi.');
     }
+});
+
+// Admin yoxlama endpointi
+app.get('/api/admin/check', isAdmin, (req, res) => {
+    res.json({ success: true });
 });
 
 app.listen(port, () => {
