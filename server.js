@@ -33,8 +33,8 @@ app.use(session({
         dir: './'
     }),
     secret: process.env.SESSION_SECRET || 'your_default_secret',
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: { 
         secure: process.env.NODE_ENV === 'production',
         maxAge: 1000 * 60 * 60 * 24 // 24 saat
@@ -290,7 +290,11 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
 // Admin yoxlaması üçün middleware
 const isAdmin = async (req, res, next) => {
     try {
+        console.log('Session:', req.session); // Debug üçün
+        console.log('Discord ID:', req.session.discordId); // Debug üçün
+        
         if (!req.session.discordId) {
+            console.log('Discord ID tapılmadı, giriş səhifəsinə yönləndirilir'); // Debug üçün
             return res.redirect('/auth/discord');
         }
 
@@ -375,28 +379,38 @@ app.get('/auth/discord/callback', async (req, res) => {
         });
 
         const user = await userResponse.json();
+        console.log('Discord user:', user); // Debug üçün
 
         // Sessiyaya Discord ID-ni əlavə et
         req.session.discordId = user.id;
         
-        // ConnectedUser cədvəlinə əlavə et
-        await ConnectedUser.findOrCreate({
-            where: { discordId: user.id },
-            defaults: {
-                username: user.username
+        // Sessiyanı yadda saxla
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).send('Session xətası baş verdi.');
             }
-        });
 
-        // Admin yoxlaması
-        if (user.id === process.env.ADMIN_DISCORD_ID) {
-            // Admin cədvəlinə əlavə et
-            await Admin.findOrCreate({
-                where: { discordId: user.id }
+            // ConnectedUser cədvəlinə əlavə et
+            ConnectedUser.findOrCreate({
+                where: { discordId: user.id },
+                defaults: {
+                    username: user.username
+                }
+            }).then(() => {
+                // Admin yoxlaması
+                if (user.id === process.env.ADMIN_DISCORD_ID) {
+                    // Admin cədvəlinə əlavə et
+                    Admin.findOrCreate({
+                        where: { discordId: user.id }
+                    }).then(() => {
+                        res.redirect('/admin.html');
+                    });
+                } else {
+                    res.redirect('/');
+                }
             });
-            return res.redirect('/admin.html');
-        }
-
-        res.redirect('/');
+        });
 
     } catch (error) {
         console.error('Discord OAuth2 callback xətası:', error);
