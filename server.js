@@ -25,6 +25,16 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Xidmət şərtləri route'u
+app.get('/terms', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
+
+// Məxfilik siyasəti route'u
+app.get('/privacy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
+
 // Emrler route'u
 app.get('/emrler', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'emrler.html'));
@@ -161,15 +171,70 @@ app.post('/api/admin-login', (req, res) => {
     }
 });
 
+// Faaliyet silme endpoint'i
+app.delete('/api/activities/:id', (req, res) => {
+    const { id } = req.params;
+    if (!fs.existsSync(activitiesFile)) {
+        return res.status(404).json({ success: false, error: 'Fəaliyyət tapılmadı.' });
+    }
+    
+    let activities = JSON.parse(fs.readFileSync(activitiesFile, 'utf-8'));
+    const initialLength = activities.length;
+    activities = activities.filter(activity => activity.id !== id);
+    
+    if (activities.length === initialLength) {
+        return res.status(404).json({ success: false, error: 'Fəaliyyət tapılmadı.' });
+    }
+    
+    fs.writeFileSync(activitiesFile, JSON.stringify(activities, null, 2));
+    res.json({ success: true });
+});
+
+// Tüm faaliyetleri silme endpoint'i
+app.delete('/api/activities', (req, res) => {
+    if (fs.existsSync(activitiesFile)) {
+        fs.writeFileSync(activitiesFile, JSON.stringify([], null, 2));
+    }
+    res.json({ success: true });
+});
+
+// Admin paneli için duyuru yönetimi endpoint'leri
+app.get('/api/admin/announcements', (req, res) => {
+    if (fs.existsSync(announcementsFile)) {
+        const data = fs.readFileSync(announcementsFile, 'utf-8');
+        res.json(JSON.parse(data));
+    } else {
+        res.json([]);
+    }
+});
+
+app.delete('/api/admin/announcements/:id', (req, res) => {
+    const { id } = req.params;
+    if (!fs.existsSync(announcementsFile)) {
+        return res.status(404).json({ success: false, error: 'Elan tapılmadı.' });
+    }
+    
+    let announcements = JSON.parse(fs.readFileSync(announcementsFile, 'utf-8'));
+    const initialLength = announcements.length;
+    announcements = announcements.filter(announcement => announcement.id !== id);
+    
+    if (announcements.length === initialLength) {
+        return res.status(404).json({ success: false, error: 'Elan tapılmadı.' });
+    }
+    
+    fs.writeFileSync(announcementsFile, JSON.stringify(announcements, null, 2));
+    res.json({ success: true });
+});
+
 // Hata yakalama middleware'i
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).send('Bir şeyler ters gitti!');
+    res.status(500).send('Xəta baş verdi!');
 });
 
 // Sunucuyu başlat
 app.listen(port, '0.0.0.0', () => {
-    console.log(`Sunucu http://localhost:${port} adresinde çalışıyor`);
+    console.log(`Server http://localhost:${port} ünvanında işləyir`);
 }).on('error', (err) => {
-    console.error('Sunucu başlatılırken hata oluştu:', err);
+    console.error('Server başladılarkən xəta baş verdi:', err);
 }); 
