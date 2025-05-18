@@ -225,6 +225,13 @@
             <div id="activityList"></div>
             <button class="btn btn-danger" onclick="clearAllActivities()" style="margin-top: 20px;">Bütün Fəaliyyətləri Sil</button>
         </div>
+
+        <!-- Bağlı İstifadəçilər -->
+        <div class="admin-section">
+            <h2>Bağlı İstifadəçilər</h2>
+            <ul class="list-group" id="connectedUsersList"></ul>
+        </div>
+
     </div>
 
     <script>
@@ -350,10 +357,39 @@
             }
         }
 
-        // Səhifə yükləndikdə elanları və fəaliyyətləri yüklə
+        // Bağlı istifadəçiləri yüklə
+        async function loadConnectedUsers() {
+            try {
+                const res = await fetch(API_URL + '/admin/connected-users');
+                const connectedUsers = await res.json();
+                const connectedUsersList = document.getElementById('connectedUsersList');
+                connectedUsersList.innerHTML = ''; // Siyahını təmizlə
+
+                if (connectedUsers.length === 0) {
+                    connectedUsersList.innerHTML = '<li class="list-item">Heç bir bağlı istifadəçi yoxdur.</li>';
+                    return;
+                }
+
+                connectedUsers.forEach(user => {
+                    const li = document.createElement('li');
+                    li.className = 'list-item';
+                    li.innerHTML = `
+                        <span><strong>${user.username}</strong> (ID: ${user.discordId}) - Qoşulma Tarixi: ${new Date(user.connectedAt).toLocaleString('az-AZ')}</span>
+                    `;
+                    connectedUsersList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Bağlı istifadəçilər yüklənərkən xəta:', error);
+                const connectedUsersList = document.getElementById('connectedUsersList');
+                connectedUsersList.innerHTML = '<li class="list-item" style="color: var(--danger);">Bağlı istifadəçilər yüklənərkən xəta baş verdi.</li>';
+            }
+        }
+
+        // Səhifə yükləndikdə elanları, fəaliyyətləri və bağlı istifadəçiləri yüklə
         document.addEventListener('DOMContentLoaded', () => {
             loadAnnouncements();
             loadActivities();
+            loadConnectedUsers(); // Yeni: Bağlı istifadəçiləri yüklə
         });
 
     </script>
