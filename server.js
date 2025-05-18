@@ -314,10 +314,12 @@ app.get('/auth/discord', (req, res) => {
 
 // Discord OAuth2 callback
 app.get('/auth/discord/callback', async (req, res) => {
+    console.log('Callback: Received request to /auth/discord/callback');
+    console.log('Callback: Received query parameters:', req.query);
     const code = req.query.code;
     if (!code) {
-        console.error('Callback: Discord OAuth2 kodu alınmadı.');
-        return res.status(400).send('Discord OAuth2 kodu alınmadı. Zəhmət olmasa, Discord Developer Portalda Redirect URI-nizin https://dbrpbot.onrender.com/auth/discord/callback olmasını yoxlayın.');
+        console.error('Callback: Discord OAuth2 kodu alınmadı.', req.query);
+        return res.status(400).send('Discord OAuth2 kodu alınmadı. Zəhmət olmasa, Discord Developer Portalda Redirect URI-nizin <code>https://dbrpbot.onrender.com/auth/discord/callback</code> olmasını yoxlayın. Problem davam edərsə, server loglarını yoxlayın.');
     }
 
     console.log('Callback: Received code.');
