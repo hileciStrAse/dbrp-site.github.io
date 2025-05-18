@@ -7,6 +7,7 @@ const webpush = require('web-push');
 const { Sequelize, DataTypes } = require('sequelize');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
+const ActivityService = require('./services/activityService');
 require('dotenv').config();
 
 // Autentifikasiya middleware funksiyası
@@ -53,6 +54,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Modelləri daxil edin və başlatın
 const Admin = require('./models/Admin')(sequelize, DataTypes);
 const ConnectedUser = require('./models/ConnectedUser')(sequelize, DataTypes);
+const Activity = require('./models/Activity')(sequelize, DataTypes);
 
 // Verilənlər bazasını sinxronizasiya et
 async function syncDatabase() {
@@ -134,7 +136,7 @@ app.post('/api/contact', async (req, res) => {
     }
 });
 
-// Fəaliyyətləri oxu (Database ilə)
+// Fəaliyyətləri əldə et
 app.get('/api/activities', async (req, res) => {
     const { limit = 20, skip = 0, serverId } = req.query;
     if (!serverId) {
@@ -154,19 +156,15 @@ app.get('/api/activities', async (req, res) => {
 //     res.status(405).json({ success: false, error: 'Bu endpoint istifadə edilmir.' });
 // });
 
-// Bütün fəaliyyətləri sil (Database ilə, Admin üçün)
-app.delete('/api/activities', async (req, res) => {
-    // Admin autentifikasiyasını yoxla
-    if (!req.session.discordId) {
-        return res.status(401).json({ success: false, error: 'Giriş icazəniz yoxdur.' });
-    }
+// Bütün fəaliyyətləri sil (Admin üçün)
+app.delete('/api/activities', ensureAuthenticated, async (req, res) => {
     try {
         const adminUser = await Admin.findOne({ where: { discordId: req.session.discordId } });
         if (!adminUser) {
             return res.status(403).json({ success: false, error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
         }
 
-        await ActivityService.deleteAllActivities(); // ActivityService-də belə bir funksiyanın olduğunu fərz edirik
+        await ActivityService.deleteAllActivities();
         res.json({ success: true });
     } catch (error) {
         console.error('Bütün fəaliyyətlər silinərkən xəta:', error);
