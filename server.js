@@ -11,6 +11,7 @@ const cookieParser = require('cookie-parser');
 const ActivityServiceClass = require('./services/activityService');
 const passport = require('passport');
 const { DiscordStrategy } = require('passport-discord');
+const fetch = require('node-fetch');
 require('dotenv').config();
 
 // Discord bot client instance (başqa fayldan ötürüləcək)
@@ -581,20 +582,31 @@ app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, re
 });
 
 // API endpoint to get list of servers (guilds)
-app.get('/api/servers', isAdmin, (req, res) => {
+app.get('/api/servers', isAdmin, async (req, res) => {
     console.log('[/api/servers] endpointine istek geldi.');
-    // Bot client'ına app.locals üzerinden erişilir
-    if (!app.locals.discordClient) {
-        console.error('Discord client instance app.locals-da tapılmadı.');
-        return res.status(500).json({ error: 'Bot client instance mövcud deyil.' });
+
+    const pythonBotApiUrl = process.env.PYTHON_BOT_API_URL || 'http://dbrp.onready.com/bot_api/servers'; // Python bot API ünvanı
+
+    try {
+        console.log(`Python bot API-sinə sorğu göndərilir: ${pythonBotApiUrl}`);
+        const response = await fetch(pythonBotApiUrl);
+
+        if (!response.ok) {
+            console.error(`Python bot API xətası: HTTP status ${response.status}`);
+            // Bot API-dən gələn xəta mesajını oxumağa çalış
+            const errorText = await response.text();
+            console.error('Python bot API xətası detalı:', errorText);
+            return res.status(response.status).json({ error: `Python bot API xətası: ${response.status}`, details: errorText });
+        }
+
+        const servers = await response.json();
+        console.log(`Python bot API-dən ${servers.length} server məlumatı alındı.`);
+        res.json(servers); // Client-ə server siyahısını göndər
+
+    } catch (error) {
+        console.error('Python bot API-sinə sorğu göndərilərkən xəta:', error);
+        res.status(500).json({ error: 'Server siyahısını əldə edilərkən xəta baş verdi.', details: error.message });
     }
-
-    const servers = app.locals.discordClient.guilds.cache.map(guild => ({
-        id: guild.id,
-        name: guild.name
-    }));
-
-    res.json(servers);
 });
 
 // Admin panel route
