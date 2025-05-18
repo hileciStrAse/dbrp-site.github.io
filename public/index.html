@@ -707,9 +707,9 @@
         </div>
         <ul>
             <li><a href="/" class="active"><i class="fas fa-home"></i>Dashboard</a></li>
-            <li><a href="/emrler.html"><i class="fas fa-code"></i>Əmrlər</a></li>
-            <li><a href="/kontakt.html"><i class="fas fa-envelope"></i>Kontakt</a></li>
-            <li><a href="/admin.html"><i class="fas fa-user-shield"></i>Admin</a></li>
+            <li><a href="/emrler"><i class="fas fa-code"></i>Əmrlər</a></li>
+            <li><a href="/kontakt"><i class="fas fa-envelope"></i>Kontakt</a></li>
+            <li><a href="/admin"><i class="fas fa-user-shield"></i>Admin</a></li>
         </ul>
     </nav>
 
@@ -797,7 +797,7 @@
                 <div class="bot-name" id="botProfileName"></div>
                 <div class="bot-status"><span class="status-online" id="botProfileStatusDot"></span> <span id="botProfileStatus"></span></div>
                 <div class="bot-description" id="botProfileDescription"></div>
-                <a href="/kontakt.html" class="btn">Əlaqə</a>
+                <a href="/kontakt" class="btn">Əlaqə</a>
             </div>
             <div class="bot-stats">
                 <div class="stats-grid">
@@ -827,6 +827,7 @@
             <ul class="activity-list" id="activityList"></ul>
         </div>
 
+        <button onclick="subscribeUser()">Bildirişlərə abunə ol</button>
     </main>
 
     <script>
@@ -933,6 +934,29 @@
             displayActivities();
             setInterval(displayActivities, 30000);
         });
+
+        const publicVapidKey = 'BF_gMcKgs2qIU5L028tm1dM-GutD60RlEjAuqsZEjT9wudyvxrTCdUf_-ERupEtl_JeJMEw53i_t-MOVa_1b1AI'; // serverdəki publicKey
+        async function subscribeUser() {
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                const subscription = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                });
+                await fetch('/api/subscribe', {
+                    method: 'POST',
+                    body: JSON.stringify(subscription),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                alert('Bildirişlərə abunə oldunuz!');
+            }
+        }
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+        }
     </script>
 </body>
 </html>
