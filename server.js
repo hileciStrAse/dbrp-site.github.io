@@ -290,22 +290,21 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
 // Admin yoxlaması üçün middleware
 const isAdmin = async (req, res, next) => {
     try {
-        console.log('Session:', req.session);
-        console.log('Discord ID:', req.session.discordId);
-        
         if (!req.session.discordId) {
-            console.log('Discord ID tapılmadı, giriş səhifəsinə yönləndirilir');
             return res.redirect('/auth/discord');
         }
 
         // Admin cədvəlində yoxla
         const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
         if (!admin) {
-            console.log('Admin tapılmadı');
+            // Admin cədvəlində yoxdursa, .env faylında yoxla
+            if (req.session.discordId === process.env.ADMIN_DISCORD_ID) {
+                // Admin cədvəlinə əlavə et
+                await Admin.create({ discordId: req.session.discordId });
+                return next();
+            }
             return res.redirect('/');
         }
-
-        console.log('Admin tapıldı:', admin.discordId);
         next();
     } catch (error) {
         console.error('Admin yoxlama xətası:', error);
@@ -326,40 +325,9 @@ app.get('/admin.html', isAdmin, (req, res) => {
 // Admin API endpointləri
 app.use('/api/admin', isAdmin);
 
-// Admin paneli route
-app.get('/admin', isAdmin, (req, res) => {
-    res.redirect('/admin.html');
-});
-
-// Get all connected users
-app.get('/api/admin/connected-users', ensureAuthenticated, async (req, res) => {
-    try {
-        const users = await ConnectedUser.findAll();
-        res.json(users);
-    } catch (error) {
-        console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
-        res.status(500).json({ error: 'Daxili Server Xətası' });
-    }
-});
-
-// Search connected users by Discord ID
-app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, res) => {
-    const { discordId } = req.query;
-    if (!discordId) {
-        return res.status(400).json({ error: 'Discord ID tələb olunur.' });
-    }
-
-    try {
-        const user = await ConnectedUser.findOne({
-            where: {
-                discordId: discordId
-            }
-        });
-        res.json(user ? [user] : []);
-    } catch (error) {
-        console.error(`Discord ID ${discordId} ilə istifadəçi axtarışı xətası:`, error);
-        res.status(500).json({ error: 'Daxili Server Xətası' });
-    }
+// Admin yoxlama endpointi
+app.get('/api/admin/check', isAdmin, (req, res) => {
+    res.json({ success: true });
 });
 
 // Discord OAuth2 endpoint'ləri
@@ -407,7 +375,6 @@ app.get('/auth/discord/callback', async (req, res) => {
         });
 
         const user = await userResponse.json();
-        console.log('Discord user:', user);
 
         // Sessiyaya Discord ID-ni əlavə et
         req.session.discordId = user.id;
@@ -421,17 +388,14 @@ app.get('/auth/discord/callback', async (req, res) => {
         });
 
         // Admin yoxlaması
-        const isAdminUser = user.id === process.env.ADMIN_DISCORD_ID;
-        if (isAdminUser) {
+        if (user.id === process.env.ADMIN_DISCORD_ID) {
             // Admin cədvəlinə əlavə et
             await Admin.findOrCreate({
                 where: { discordId: user.id }
             });
-            console.log('Admin girişi uğurlu oldu');
             return res.redirect('/admin.html');
         }
 
-        console.log('Normal istifadəçi girişi');
         res.redirect('/');
 
     } catch (error) {
@@ -440,9 +404,35 @@ app.get('/auth/discord/callback', async (req, res) => {
     }
 });
 
-// Admin yoxlama endpointi
-app.get('/api/admin/check', isAdmin, (req, res) => {
-    res.json({ success: true });
+// Get all connected users
+app.get('/api/admin/connected-users', ensureAuthenticated, async (req, res) => {
+    try {
+        const users = await ConnectedUser.findAll();
+        res.json(users);
+    } catch (error) {
+        console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
+        res.status(500).json({ error: 'Daxili Server Xətası' });
+    }
+});
+
+// Search connected users by Discord ID
+app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, res) => {
+    const { discordId } = req.query;
+    if (!discordId) {
+        return res.status(400).json({ error: 'Discord ID tələb olunur.' });
+    }
+
+    try {
+        const user = await ConnectedUser.findOne({
+            where: {
+                discordId: discordId
+            }
+        });
+        res.json(user ? [user] : []);
+    } catch (error) {
+        console.error(`Discord ID ${discordId} ilə istifadəçi axtarışı xətası:`, error);
+        res.status(500).json({ error: 'Daxili Server Xətası' });
+    }
 });
 
 app.listen(port, () => {
