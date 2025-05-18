@@ -290,15 +290,31 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
 // Admin yoxlaması üçün middleware
 const isAdmin = async (req, res, next) => {
     try {
+        console.log('Session:', req.session); // Debug üçün
+        console.log('Discord ID:', req.session.discordId); // Debug üçün
+        
         if (!req.session.discordId) {
+            console.log('Discord ID tapılmadı, giriş səhifəsinə yönləndirilir'); // Debug üçün
             return res.redirect('/auth/discord');
         }
 
+        // Əvvəlcə Admin cədvəlində yoxla
         const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (!admin) {
-            return res.status(403).send('Bu səhifəyə giriş üçün icazəniz yoxdur.');
+        if (admin) {
+            console.log('Admin tapıldı:', admin.discordId); // Debug üçün
+            return next();
         }
-        next();
+
+        // Admin cədvəlində yoxdursa, .env faylında yoxla
+        if (req.session.discordId === process.env.ADMIN_DISCORD_ID) {
+            console.log('Admin .env faylında tapıldı'); // Debug üçün
+            // Admin cədvəlinə əlavə et
+            await Admin.create({ discordId: req.session.discordId });
+            return next();
+        }
+
+        console.log('Admin tapılmadı'); // Debug üçün
+        return res.status(403).send('Bu səhifəyə giriş üçün icazəniz yoxdur.');
     } catch (error) {
         console.error('Admin yoxlama xətası:', error);
         res.status(500).send('Server xətası baş verdi.');
@@ -398,21 +414,19 @@ app.get('/auth/discord/callback', async (req, res) => {
         });
 
         const user = await userResponse.json();
+        console.log('Discord user:', user); // Debug üçün
 
+        // Sessiyaya Discord ID-ni əlavə et
         req.session.discordId = user.id;
-
-        const [connectedUser, created] = await ConnectedUser.findOrCreate({
-            where: { discordId: user.id },
-            defaults: {
-                username: user.username
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).send('Session xətası baş verdi.');
             }
+            
+            // İstifadəçini admin səhifəsinə yönləndir
+            res.redirect('/admin.html');
         });
-
-        if (user.id === process.env.ADMIN_DISCORD_ID) {
-            res.redirect('/admin');
-        } else {
-            res.redirect('/');
-        }
 
     } catch (error) {
         console.error('Discord OAuth2 callback xətası:', error);
