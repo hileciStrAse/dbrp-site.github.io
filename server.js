@@ -87,6 +87,9 @@ const Activity = require('./models/Activity')(sequelize, DataTypes);
 // ActivityService instansiyasını yaradın və Activity modelini ötürün
 const ActivityService = new ActivityServiceClass(Activity);
 
+// HTTP sorğuları üçün (node-fetch uyğunluğu üçün)
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
 // Verilənlər bazasını sinxronizasiya et
 async function syncDatabase() {
     try {
@@ -399,6 +402,7 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     try {
         // Token əldə et
+        console.log('Callback: Token endpointinə sorğu göndərilir...');
         const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
             method: 'POST',
             body: new URLSearchParams({
@@ -406,8 +410,8 @@ app.get('/auth/discord/callback', async (req, res) => {
                 client_secret: process.env.DISCORD_CLIENT_SECRET,
                 code: code,
                 grant_type: 'authorization_code',
-                redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback', // Redirect URI-ni tam callback URL-i edirik
-                scope: 'identify+guilds', // Scope-u da uyğunlaşdırırıq
+                redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
+                scope: 'identify guilds', // Scope-u boşluqla ayırırıq
             }),
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -588,23 +592,21 @@ app.get('/api/servers', isAdmin, async (req, res) => {
     const pythonBotApiUrl = process.env.PYTHON_BOT_API_URL || 'http://dbrp.onready.com/bot_api/servers'; // Python bot API ünvanı
 
     try {
-        console.log(`Python bot API-sinə sorğu göndərilir: ${pythonBotApiUrl}`);
+        console.log(`[/api/servers] Python bot API-sinə sorğu göndərilir: ${pythonBotApiUrl}`);
         const response = await fetch(pythonBotApiUrl);
 
         if (!response.ok) {
-            console.error(`Python bot API xətası: HTTP status ${response.status}`);
-            // Bot API-dən gələn xəta mesajını oxumağa çalış
             const errorText = await response.text();
-            console.error('Python bot API xətası detalı:', errorText);
+            console.error(`[/api/servers] Python bot API xətası: HTTP status ${response.status}, Detallar: ${errorText}`);
             return res.status(response.status).json({ error: `Python bot API xətası: ${response.status}`, details: errorText });
         }
 
         const servers = await response.json();
-        console.log(`Python bot API-dən ${servers.length} server məlumatı alındı.`);
+        console.log(`[/api/servers] Python bot API-dən ${servers.length} server məlumatı alındı.`);
         res.json(servers); // Client-ə server siyahısını göndər
 
     } catch (error) {
-        console.error('Python bot API-sinə sorğu göndərilərkən xəta:', error);
+        console.error('[/api/servers] Python bot API-sinə sorğu göndərilərkən xəta:', error);
         res.status(500).json({ error: 'Server siyahısını əldə edilərkən xəta baş verdi.', details: error.message });
     }
 });
