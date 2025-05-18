@@ -14,7 +14,6 @@ const { DiscordStrategy } = require('passport-discord');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const bcrypt = require('bcrypt');
 require('dotenv').config();
-const { ConnectedUser } = require('./models/ConnectedUser');
 const ActivityService = require('./services/activityService');
 const { Op } = require('sequelize');
 
@@ -85,7 +84,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Modelləri daxil edin və başlatın
 const Admin = require('./models/Admin')(sequelize, DataTypes);
-const ConnectedUser = require('./models/ConnectedUser')(sequelize, DataTypes);
 const Activity = require('./models/Activity')(sequelize, DataTypes);
 
 // ConnectedUser modelini yenilə: parol və is_verified sahələri əlavə et
@@ -114,7 +112,7 @@ const UpdatedConnectedUser = sequelize.define('ConnectedUser', {
 }, { timestamps: true });
 
 // Model təyinatını dəyişdir
-ConnectedUser.init(UpdatedConnectedUser.getAttributes(), { sequelize, modelName: 'ConnectedUser' });
+UpdatedConnectedUser.init(UpdatedConnectedUser.getAttributes(), { sequelize, modelName: 'ConnectedUser' });
 
 // ActivityService instansiyasını yaradın və Activity modelini ötürün
 const ActivityService = new ActivityServiceClass(Activity);
@@ -357,7 +355,7 @@ app.post('/api/register', async (req, res) => {
 
     try {
         // İstifadəçi artıq mövcuddurmu yoxla
-        const existingUser = await ConnectedUser.findOne({ where: { discordId: discordId } });
+        const existingUser = await UpdatedConnectedUser.findOne({ where: { discordId: discordId } });
         if (existingUser) {
             // Əgər mövcuddursa və artıq şifrəsi varsa
             if (existingUser.password) {
@@ -376,7 +374,7 @@ app.post('/api/register', async (req, res) => {
 
         // Yeni istifadəçi yarat
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await ConnectedUser.create({
+        const newUser = await UpdatedConnectedUser.create({
             discordId: discordId,
             username: username,
             password: hashedPassword,
@@ -401,7 +399,7 @@ app.post('/api/login', async (req, res) => {
 
     try {
         // İstifadəçini Discord ID-yə görə tap
-        const user = await ConnectedUser.findOne({ where: { discordId: discordId } });
+        const user = await UpdatedConnectedUser.findOne({ where: { discordId: discordId } });
 
         if (!user) {
             return res.status(401).json({ success: false, message: 'İstifadəçi tapılmadı.' });
@@ -568,7 +566,7 @@ app.get('/auth/discord/callback', async (req, res) => {
             
             // ConnectedUser cədvəlinə əlavə et
             try {
-                 await ConnectedUser.findOrCreate({
+                 await UpdatedConnectedUser.findOrCreate({
                      where: { discordId: userData.id },
                      defaults: { username: userData.username }
                  });
@@ -662,7 +660,7 @@ app.get('/api/admin/check', isAdmin, (req, res) => {
 // Get all connected users
 app.get('/api/admin/connected-users', ensureAuthenticated, async (req, res) => {
     try {
-        const users = await ConnectedUser.findAll();
+        const users = await UpdatedConnectedUser.findAll();
         res.json(users);
     } catch (error) {
         console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
@@ -678,7 +676,7 @@ app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, re
     }
 
     try {
-        const user = await ConnectedUser.findOne({
+        const user = await UpdatedConnectedUser.findOne({
             where: {
                 discordId: discordId
             }
@@ -759,7 +757,7 @@ app.get('/api/user/fin/:finCode', async (req, res) => {
         }
 
         // Verilənlər bazamızda bu discordId ilə istifadəçi var mı yoxla
-        const connectedUser = await ConnectedUser.findOne({ where: { discordId: userData.discordId } });
+        const connectedUser = await UpdatedConnectedUser.findOne({ where: { discordId: userData.discordId } });
 
         if (!connectedUser) {
              // API-də tapıldı, amma bizim DB-də yoxdursa, bu o deməkdir ki, qeydiyyatdan keçməyib
