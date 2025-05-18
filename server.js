@@ -36,9 +36,10 @@ app.use(session({
     resave: true,
     saveUninitialized: true,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Development üçün false
         maxAge: 1000 * 60 * 60 * 24, // 24 saat
-        httpOnly: true
+        httpOnly: true,
+        sameSite: 'lax'
     }
 }));
 
@@ -291,11 +292,15 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
 // Admin yoxlaması üçün middleware
 const isAdmin = async (req, res, next) => {
     try {
+        console.log('Session data:', req.session);
+        
         // Sessiyanı yoxla
         if (!req.session || !req.session.discordId) {
             console.log('Sessiya tapılmadı, Discord girişinə yönləndirilir');
             return res.redirect('/auth/discord');
         }
+
+        console.log('Discord ID:', req.session.discordId);
 
         // Admin cədvəlində yoxla
         const admin = await Admin.findOne({ where: { discordId: req.session.discordId } });
@@ -360,7 +365,7 @@ app.get('/auth/discord/callback', async (req, res) => {
                 client_secret: process.env.DISCORD_CLIENT_SECRET,
                 code: code,
                 grant_type: 'authorization_code',
-                redirect_uri: process.env.DISCORD_REDIRECT_URI,
+                redirect_uri: 'https://dbrpbot.onrender.com/',
                 scope: 'identify',
             }),
             headers: {
@@ -392,8 +397,13 @@ app.get('/auth/discord/callback', async (req, res) => {
         // Sessiyanı yadda saxla
         await new Promise((resolve, reject) => {
             req.session.save((err) => {
-                if (err) reject(err);
-                else resolve();
+                if (err) {
+                    console.error('Session save error:', err);
+                    reject(err);
+                } else {
+                    console.log('Session saved successfully:', req.session);
+                    resolve();
+                }
             });
         });
 
