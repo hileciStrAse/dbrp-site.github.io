@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
+const webpush = require('web-push');
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -85,6 +86,67 @@ app.post('/api/activities', (req, res) => {
     }
     activities.unshift({ id: Date.now().toString(), title, description, date, icon });
     fs.writeFileSync(activitiesFile, JSON.stringify(activities, null, 2));
+    res.json({ success: true });
+});
+
+// VAPID açarlarını bura əlavə et (öz açarlarınla əvəz et)
+webpush.setVapidDetails(
+  'mailto:adeadem123321@gmail.com',
+  'BF_gMcKgs2qIU5L028tm1dM-GutD60RlEjAuqsZEjT9wudyvxrTCdUf_-ERupEtl_JeJMEw53i_t-MOVa_1b1AI',   // publicKey
+  'cqgyT5FPm7ArwccmH3UiDLxUpqtTmkxuos7E0l2OW-k'   // privateKey
+);
+
+const subsFile = './subscriptions.json';
+const announcementsFile = './announcements.json';
+
+// Abunə əlavə et
+app.post('/api/subscribe', (req, res) => {
+    const sub = req.body;
+    let subscriptions = [];
+    if (fs.existsSync(subsFile)) {
+        subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
+    }
+    if (!subscriptions.find(s => JSON.stringify(s) === JSON.stringify(sub))) {
+        subscriptions.push(sub);
+        fs.writeFileSync(subsFile, JSON.stringify(subscriptions, null, 2));
+    }
+    res.status(201).json({});
+});
+
+// Duyuruları oxu
+app.get('/api/announcements', (req, res) => {
+    if (fs.existsSync(announcementsFile)) {
+        const data = fs.readFileSync(announcementsFile, 'utf-8');
+        res.json(JSON.parse(data));
+    } else {
+        res.json([]);
+    }
+});
+
+// Yeni duyuru əlavə et və push göndər
+app.post('/api/announcements', (req, res) => {
+    const { title, message, date } = req.body;
+    if (!title || !message || !date) {
+        return res.status(400).json({ success: false, error: 'Bütün sahələr doldurulmalıdır.' });
+    }
+    let announcements = [];
+    if (fs.existsSync(announcementsFile)) {
+        announcements = JSON.parse(fs.readFileSync(announcementsFile, 'utf-8'));
+    }
+    const newAnn = { id: Date.now().toString(), title, message, date };
+    announcements.unshift(newAnn);
+    fs.writeFileSync(announcementsFile, JSON.stringify(announcements, null, 2));
+
+    // Push notification göndər
+    let subscriptions = [];
+    if (fs.existsSync(subsFile)) {
+        subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
+    }
+    const payload = JSON.stringify({ title, message });
+    subscriptions.forEach(sub => {
+        webpush.sendNotification(sub, payload).catch(err => console.error(err));
+    });
+
     res.json({ success: true });
 });
 
