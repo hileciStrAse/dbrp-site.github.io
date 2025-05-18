@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="az">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DBRP - Dashboard</title>
+    <title>DBRP - Admin Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -34,953 +34,672 @@
             background: linear-gradient(145deg, var(--darker) 0%, var(--dark) 100%);
             color: var(--light);
             min-height: 100vh;
-            overflow-x: hidden;
+            line-height: 1.6;
         }
-        
-        /* Navbar */
-        nav {
-            width: 280px;
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
             background: var(--glass);
             backdrop-filter: blur(16px);
-            height: 100vh;
-            padding: 30px 0;
-            position: fixed;
-            z-index: 100;
-            border-right: 1px solid var(--border);
+            border-radius: 16px;
+            border: 1px solid var(--border);
             box-shadow: var(--shadow);
-            transition: transform 0.3s ease;
         }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .admin-section {
             margin-bottom: 40px;
-            padding: 0 20px;
-        }
-        
-        .logo img {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            margin-right: 12px;
-            object-fit: cover;
-            border: 2px solid var(--primary);
-            transition: transform 0.3s ease;
-        }
-        
-        .logo img:hover {
-            transform: scale(1.1);
-        }
-        
-        .logo h2 {
-            font-size: 1.6rem;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 600;
-        }
-        
-        nav ul {
-            list-style: none;
-            padding: 0 20px;
-        }
-        
-        nav ul li {
-            margin: 12px 0;
-            position: relative;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        nav ul li a {
-            text-decoration: none;
-            color: var(--light);
-            font-weight: 500;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            transition: all 0.3s ease;
-            border-radius: 10px;
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        nav ul li a::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        nav ul li a:hover::before, nav ul li a.active::before {
-            opacity: 1;
-        }
-        
-        nav ul li a i {
-            margin-right: 12px;
-            font-size: 18px;
-            width: 24px;
-            text-align: center;
-        }
-        
-        nav ul li a:hover, nav ul li a.active {
-            background: rgba(0, 200, 255, 0.15);
-            color: var(--primary);
-            transform: translateX(5px);
-        }
-        
-        nav ul li a:hover::after, nav ul li a.active::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 4px;
-            background: linear-gradient(180deg, var(--primary), var(--secondary));
-        }
-        
-        /* Main Content */
-        main {
-            margin-left: 280px;
-            padding: 40px;
-            min-height: 100vh;
-            transition: margin-left 0.3s ease;
-        }
-        
-        .header {
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .header h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        /* Dashboard Cards */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        
-        .card {
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--border);
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .card:hover::before {
-            opacity: 1;
-        }
-        
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-            border-color: var(--primary);
-        }
-        
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        
-        .card-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-        
-        .card-icon {
-            width: 44px;
-            height: 44px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 200, 255, 0.15);
-            color: var(--primary);
-            transition: transform 0.3s ease;
-        }
-        
-        .card-icon:hover {
-            transform: rotate(360deg);
-        }
-        
-        .card-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        
-        .card-desc {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.65);
-        }
-        
-        .status-online {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--success);
-            margin-right: 8px;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-        
-        /* Bot Info Section */
-        .bot-info {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        
-        .bot-profile {
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
             border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
         }
-        
-        .bot-profile::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
+
+        .admin-section h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
         }
-        
-        .bot-profile:hover::before {
-            opacity: 1;
+
+        .form-group {
+            margin-bottom: 20px;
         }
-        
-        .bot-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary);
-            margin: 0 auto 16px;
+
+        .form-group label {
             display: block;
-            transition: transform 0.3s ease;
-        }
-        
-        .bot-avatar:hover {
-            transform: scale(1.05);
-        }
-        
-        .bot-name {
-            font-size: 1.4rem;
-            font-weight: 600;
             margin-bottom: 8px;
+            font-weight: 500;
         }
-        
-        .bot-status {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 16px;
-            color: var(--success);
-            font-size: 0.9rem;
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--light);
+            font-size: 1rem;
+            resize: vertical;
         }
-        
-        .bot-description {
-            color: rgba(255, 255, 255, 0.65);
-            font-size: 0.85rem;
-            margin-bottom: 24px;
-            line-height: 1.5;
-        }
-        
+
         .btn {
             display: inline-block;
-            padding: 10px 24px;
+            padding: 10px 20px;
             background: linear-gradient(90deg, var(--primary), var(--secondary));
             color: white;
             border: none;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0, 152, 255, 0.3);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .btn:hover::before {
-            opacity: 1;
-        }
-        
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 152, 255, 0.5);
-            background: linear-gradient(90deg, var(--secondary), var(--primary));
-        }
-        
-        .bot-stats {
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .bot-stats::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .bot-stats:hover::before {
-            opacity: 1;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 16px;
-        }
-        
-        .stat-item {
-            padding: 16px;
-            border-radius: 12px;
-            background: rgba(0, 0, 0, 0.15);
-            transition: transform 0.3s ease;
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .stat-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .stat-item:hover::before {
-            opacity: 1;
-        }
-        
-        .stat-item:hover {
-            transform: translateY(-4px);
-        }
-        
-        .stat-label {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.65);
-            margin-bottom: 6px;
-        }
-        
-        .stat-value {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        
-        /* Recent Activity */
-        .activity-section {
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .activity-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .activity-section:hover::before {
-            opacity: 1;
-        }
-        
-        .section-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .section-title i {
-            margin-right: 12px;
-            color: var(--primary);
-        }
-        
-        .activity-list {
-            list-style: none;
-        }
-        
-        .activity-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-            transition: background 0.3s ease;
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .activity-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .activity-item:hover::before {
-            opacity: 1;
-        }
-        
-        .activity-item:hover {
-            background: rgba(0, 200, 255, 0.05);
-        }
-        
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-        
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 200, 255, 0.15);
-            color: var(--primary);
-            margin-right: 16px;
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-        }
-        
-        .activity-item:hover .activity-icon {
-            transform: scale(1.1);
-        }
-        
-        .activity-content {
-            flex: 1;
-        }
-        
-        .activity-title {
-            font-weight: 500;
-            font-size: 0.9rem;
-            margin-bottom: 4px;
-            color: inherit;
-        }
-        
-        .activity-description {
-            font-size: 0.78rem;
-            color: #b3b5b8;
-            font-weight: 600;
-            opacity: 0.95;
-        }
-        
-        .activity-time {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.45);
-        }
-        
-        /* Menu Toggle */
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1001;
-            background: var(--glass);
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
-            cursor: pointer;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            transition: transform 0.3s ease;
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .menu-toggle::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .menu-toggle:hover::before {
-            opacity: 1;
-        }
-        
-        .menu-toggle:hover {
-            transform: rotate(90deg);
-        }
-        
-        /* Responsive */
-        @media (max-width: 1200px) {
-            nav {
-                width: 240px;
-            }
-            main {
-                margin-left: 240px;
-            }
-        }
-        
-        @media (max-width: 992px) {
-            .bot-info {
-                grid-template-columns: 1fr;
-            }
-            .dashboard-grid {
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            }
-        }
-        
-        @media (max-width: 768px) {
-            nav {
-                transform: translateX(-100%);
-                width: 260px;
-            }
-            nav.active {
-                transform: translateX(0);
-            }
-            main {
-                margin-left: 0;
-                padding: 24px;
-            }
-            .menu-toggle {
-                display: flex;
-            }
-            .header h1 {
-                font-size: 1.8rem;
-            }
-        }
-        
-        @media (max-width: 576px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            .bot-profile {
-                padding: 20px;
-            }
-            .bot-stats {
-                padding: 20px;
-            }
-            .activity-section {
-                padding: 20px;
-            }
-        }
-
-        .discord-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            background: #5865F2;
-            color: white;
-            text-decoration: none;
             border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-top: 15px;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
         }
 
-        .discord-btn:hover {
-            background: #4752C4;
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, var(--danger), #c53030);
+        }
+        
+        .btn-danger:hover {
+             opacity: 0.9;
+        }
+
+        .list-group {
+            list-style: none;
+            padding: 0;
+        }
+
+        .list-item {
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item span {
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+
+        .list-item .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+
+        .list-item .delete-btn:hover {
+            color: #e53e3e;
+        }
+
+        .activity-item {
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .activity-item strong {
+            color: var(--primary);
+        }
+
+        .activity-item p {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .activity-item small {
+            display: block;
+            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 20px;
+                padding: 15px;
+            }
+            .admin-section {
+                padding: 15px;
+            }
+            .list-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .list-item span {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Yükləmə ekranı stilləri */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--border);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: var(--light);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .content {
+            display: none; /* Başlanğıcda gizlədilir */
+        }
+
+        .content.loaded {
+            display: block; /* Yükləmə bitdikdən sonra göstərilir */
+        }
+
+        /* Bağlı İstifadəçilər bölməsi üçün yeni stillər */
+        .connected-users-search {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .connected-users-search input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--light);
+            font-size: 1rem;
+        }
+
+        .connected-users-search button {
+            padding: 10px 20px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .connected-users-search button:hover {
+            opacity: 0.9;
+        }
+
+        #connectedUsersList {
+            list-style: none;
+            padding: 0;
+        }
+
+        #connectedUsersList .list-item {
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #connectedUsersList .list-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(88, 101, 242, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-color: var(--primary);
         }
 
-        .discord-btn i {
-            font-size: 1.2em;
+        #connectedUsersList .list-item .user-info {
+            flex-grow: 1;
         }
+
+        #connectedUsersList .list-item .username {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        #connectedUsersList .list-item .discord-id {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        #connectedUsersList .list-item .connection-date {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        #connectedUsersList .list-item .user-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        #connectedUsersList .list-item .status-active {
+            background: var(--success);
+            color: white;
+        }
+
+        #connectedUsersList .list-item .status-inactive {
+            background: var(--warning);
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .connected-users-search {
+                flex-direction: column;
+            }
+            
+            #connectedUsersList .list-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            #connectedUsersList .list-item .user-status {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
+
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav id="sidebar">
-        <div class="logo">
-            <img src="https://cdn.discordapp.com/attachments/1361729626757529601/1373342726782844968/ARP_3.png?ex=682a1095&is=6828bf15&hm=93ab55a4ab68d5d70d86379a6d40e09b65dd234267cf2ff000698a5a5897b420&" alt="DBRP Logo">
-            <h2>DBRP</h2>
-        </div>
-        <ul>
-            <li><a href="/" class="active"><i class="fas fa-home"></i>Dashboard</a></li>
-            <li><a href="/emrler"><i class="fas fa-code"></i>Əmrlər</a></li>
-            <li><a href="/kontakt"><i class="fas fa-envelope"></i>Kontakt</a></li>
-            <li><a href="/admin"><i class="fas fa-user-cog"></i> Admin Panel</a></li>
-        </ul>
-    </nav>
+    <!-- Yükləmə ekranı -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Admin paneli yüklənir...</div>
+    </div>
 
-    <!-- Main Content -->
-    <main>
-        <div class="menu-toggle" id="menuToggle">
-            <i class="fas fa-bars"></i>
-        </div>
-        
-        <div class="header">
-            <h1>Dashboard</h1>
-        </div>
-        
-        <!-- Dashboard Cards -->
-        <div class="dashboard-grid">
-            <!-- Bot Məlumatları -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Bot Məlumatları</span>
-                    <div class="card-icon"><i class="fas fa-robot"></i></div>
-                </div>
-                <div class="card-value">
-                    <div class="stat-item">
-                        <div class="stat-label">Ad</div>
-                        <div class="stat-value" id="botName"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Versiya</div>
-                        <div class="stat-value" id="botVersion"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Təsvir</div>
-                        <div class="stat-value" id="botDescription"></div>
-                    </div>
-                </div>
+    <!-- Əsas məzmun -->
+    <div class="container content" id="mainContent">
+        <h1>Admin Panel</h1>
+
+        <!-- Elan İdarəetməsi -->
+        <div class="admin-section">
+            <h2>Elan İdarəetməsi</h2>
+            <div class="form-group">
+                <label for="announcementTitle">Elan Başlığı:</label>
+                <input type="text" id="announcementTitle">
             </div>
-            <!-- Status -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Status</span>
-                    <div class="card-icon"><i class="fas fa-signal"></i></div>
-                </div>
-                <div class="card-value">
-                    <div class="stat-item">
-                        <div class="stat-label">Bot Statusu</div>
-                        <div class="stat-value"><span class="status-online" id="statusDot"></span> <span id="botStatus"></span></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">API Statusu</div>
-                        <div class="stat-value" id="apiStatus"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Sistem Statusu</div>
-                        <div class="stat-value" id="systemStatus"></div>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label for="announcementMessage">Elan Mətni:</label>
+                <textarea id="announcementMessage" rows="4"></textarea>
             </div>
-            <!-- Vaxt Məlumatları -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Vaxt Məlumatları</span>
-                    <div class="card-icon"><i class="fas fa-clock"></i></div>
-                </div>
-                <div class="card-value">
-                    <div class="stat-item">
-                        <div class="stat-label">Tarix</div>
-                        <div class="stat-value" id="currentDate"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Saat</div>
-                        <div class="stat-value" id="currentTime"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">İş Vaxtı</div>
-                        <div class="stat-value" id="uptime"></div>
-                    </div>
-                </div>
-            </div>
+            <button class="btn" onclick="sendAnnouncement()">Elan Göndər</button>
+
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">Mövcud Elanlar</h3>
+            <ul class="list-group" id="announcementList"></ul>
         </div>
 
-        <!-- Bot Info Section -->
-        <div class="bot-info">
-            <div class="bot-profile">
-                <img src="https://cdn.discordapp.com/attachments/1361729626757529601/1373342726782844968/ARP_3.png?ex=682a1095&is=6828bf15&hm=93ab55a4ab68d5d70d86379a6d40e09b65dd234267cf2ff000698a5a5897b420&" alt="Bot Avatar" class="bot-avatar">
-                <div class="bot-name" id="botProfileName"></div>
-                <div class="bot-status"><span class="status-online" id="botProfileStatusDot"></span> <span id="botProfileStatus"></span></div>
-                <div class="bot-description" id="botProfileDescription"></div>
-                <a href="/kontakt" class="btn">Əlaqə</a>
-                <a href="https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds" class="btn discord-btn"><i class="fab fa-discord"></i> Discord ilə Giriş</a>
+        <!-- Fəaliyyət İdarəetməsi -->
+        <div class="admin-section">
+            <h2>Fəaliyyət İdarəetməsi</h2>
+            <div class="form-group">
+                <label for="serverSelect">Server Seçin:</label>
+                <select id="serverSelect">
+                    <option value="">Serverlər yüklənir...</option>
+                </select>
             </div>
-            <div class="bot-stats">
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-label">Bot Adı</div>
-                        <div class="stat-value" id="botStatsName"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Versiya</div>
-                        <div class="stat-value" id="botStatsVersion"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Status</div>
-                        <div class="stat-value" id="botStatsStatus"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">İş Vaxtı</div>
-                        <div class="stat-value" id="botStatsUptime"></div>
-                    </div>
-                </div>
-            </div>
+            <h3 style="margin-bottom: 15px;">Son Fəaliyyətlər</h3>
+            <div id="activityList"></div>
+            <button class="btn btn-danger" onclick="clearAllActivities()" style="margin-top: 20px;">Bütün Fəaliyyətləri Sil</button>
         </div>
 
-        <!-- Recent Activity -->
-        <div class="activity-section">
-            <h3 class="section-title"><i class="fas fa-bell"></i> Son Fəaliyyət</h3>
-            <ul class="activity-list" id="activityList"></ul>
+        <!-- Bağlı İstifadəçilər -->
+        <div class="admin-section">
+            <h2>Bağlı İstifadəçilər</h2>
+            <div class="connected-users-search">
+                <input type="text" id="discordIdSearchInput" placeholder="Discord ID ilə axtarış">
+                <button id="searchUserButton">Axtar</button>
+            </div>
+            <ul id="connectedUsersList">
+                <!-- Connected users will be listed here -->
+            </ul>
         </div>
-    </main>
+
+    </div>
 
     <script>
-        // Toggle sidebar on mobile
-        document.getElementById('menuToggle').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('active');
-        });
+        // API endpointlərinin URL-ləri
+        const API_URL = window.location.origin + '/api';
 
-        // Mouse tracking for glow effect
-        const glowElements = document.querySelectorAll('.card, .bot-profile, .bot-stats, .activity-item, nav ul li a, .btn, .stat-item, .menu-toggle');
-        glowElements.forEach(element => {
-            element.addEventListener('mousemove', (e) => {
-                const rect = element.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                element.style.setProperty('--mouse-x', `${x}%`);
-                element.style.setProperty('--mouse-y', `${y}%`);
-            });
-            element.addEventListener('mouseleave', () => {
-                element.style.setProperty('--mouse-x', '50%');
-                element.style.setProperty('--mouse-y', '50%');
-            });
-        });
-
-        // Dinamik dashboard məlumatları üçün API-dən fetch
-        async function fetchDashboardData() {
+        // Serverləri yüklə və dropdownu doldur
+        async function loadServers() {
             try {
-                const response = await fetch('https://dbrp.onrender.com/api');
-                const data = await response.json();
+                const res = await fetch(API_URL + '/servers');
+                if (!res.ok) {
+                    throw new Error(`Serverləri yükləmək mümkün olmadı: ${res.status}`);
+                }
+                const servers = await res.json();
+                const serverSelect = document.getElementById('serverSelect');
+                serverSelect.innerHTML = ''; // Mevcut seçenekleri temizle
 
-                // Bot Məlumatları
-                document.getElementById('botName').textContent = data.bot_info.name;
-                document.getElementById('botVersion').textContent = data.bot_info.version;
-                document.getElementById('botDescription').textContent = data.bot_info.description;
+                if (servers.length === 0) {
+                    serverSelect.innerHTML = '<option value="">Server tapılmadı</option>';
+                    return;
+                }
 
-                // Status
-                const botStatusEl = document.getElementById('botStatus');
-                botStatusEl.textContent = data.bot_status.status === 'online' ? 'Online' : 'Offline';
-                botStatusEl.style.color = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('statusDot').style.background = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('apiStatus').textContent = data.health_check.status === 'healthy' ? 'Online' : 'Offline';
-                document.getElementById('apiStatus').style.color = data.health_check.status === 'healthy' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('systemStatus').textContent = data.system_status.status === 'healthy' ? 'Sağlam' : 'Problemli';
-                document.getElementById('systemStatus').style.color = data.system_status.status === 'healthy' ? 'var(--success)' : 'var(--danger)';
+                // Varsayılan seçenek (isteğe bağlı)
+                // serverSelect.innerHTML += '<option value="">Bütün Serverlər</option>';
 
-                // Vaxt Məlumatları
-                document.getElementById('currentDate').textContent = data.time_info.date;
-                document.getElementById('currentTime').textContent = data.time_info.time;
-                const uptime = data.system_status.uptime;
-                const hours = Math.floor(uptime / 3600);
-                const minutes = Math.floor((uptime % 3600) / 60);
-                document.getElementById('uptime').textContent = `${hours} saat ${minutes} dəqiqə`;
+                servers.forEach(server => {
+                    const option = document.createElement('option');
+                    option.value = server.id;
+                    option.textContent = server.name; // veya server.guildName
+                    serverSelect.appendChild(option);
+                });
 
-                // Bot Info Section
-                document.getElementById('botProfileName').textContent = data.bot_info.name;
-                const botProfileStatus = document.getElementById('botProfileStatus');
-                botProfileStatus.textContent = data.bot_status.status === 'online' ? 'Online' : 'Offline';
-                botProfileStatus.style.color = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('botProfileStatusDot').style.background = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('botProfileDescription').textContent = data.bot_info.description;
-                document.getElementById('botStatsName').textContent = data.bot_info.name;
-                document.getElementById('botStatsVersion').textContent = data.bot_info.version;
-                const botStatsStatus = document.getElementById('botStatsStatus');
-                botStatsStatus.textContent = data.bot_status.status === 'online' ? 'Online' : 'Offline';
-                botStatsStatus.style.color = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('botStatsUptime').textContent = `${hours} saat ${minutes} dəqiqə`;
+                // Serverler yüklendikten sonra aktiviteleri yükle (ilk server için veya varsayılan)
+                loadActivities();
+
             } catch (error) {
-                console.error('Dashboard məlumatları yüklənərkən xəta baş verdi:', error);
+                console.error('Serverlər yüklənərkən xəta:', error);
+                const serverSelect = document.getElementById('serverSelect');
+                serverSelect.innerHTML = '<option value="">Yüklənmə xətası</option>';
             }
         }
 
-        // Load activities from server
-        async function loadActivities() {
-            const res = await fetch('/api/activities');
-            return await res.json();
+        // Elanları yüklə
+        async function loadAnnouncements() {
+            try {
+                const res = await fetch(API_URL + '/announcements');
+                const announcements = await res.json();
+                const announcementList = document.getElementById('announcementList');
+                announcementList.innerHTML = ''; // Siyahını təmizlə
+                announcements.forEach(ann => {
+                    const li = document.createElement('li');
+                    li.className = 'list-item';
+                    li.innerHTML = `
+                        <span><strong>${ann.title}:</strong> ${ann.message} (${new Date(ann.date).toLocaleString('az-AZ')})</span>
+                        <button class="delete-btn" onclick="deleteAnnouncement('${ann._id}')"><i class="fas fa-trash"></i></button>
+                    `;
+                    announcementList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Elanlar yüklənərkən xəta:', error);
+            }
         }
 
-        // Display activities
-        async function displayActivities() {
-            const activityList = document.getElementById('activityList');
-            activityList.innerHTML = '';
-            const activities = await loadActivities();
-            activities.forEach(activity => {
-                const li = document.createElement('li');
-                li.className = 'activity-item';
-                li.innerHTML = `
-                    <div class="activity-icon">
-                        <i class="${activity.icon || 'fas fa-bell'}"></i>
+        // Elanı göndər
+        async function sendAnnouncement() {
+            const title = document.getElementById('announcementTitle').value;
+            const message = document.getElementById('announcementMessage').value;
+
+            if (!title || !message) {
+                alert('Zəhmət olmasa, elan başlığı və mətnini daxil edin.');
+                return;
+            }
+
+            try {
+                const res = await fetch(API_URL + '/announcements', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, message, date: new Date().toISOString() })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Elan uğurla göndərildi!');
+                    document.getElementById('announcementTitle').value = '';
+                    document.getElementById('announcementMessage').value = '';
+                    loadAnnouncements(); // Siyahını yenilə
+                } else {
+                    alert('Elan göndərilərkən xəta baş verdi.');
+                }
+            } catch (error) {
+                console.error('Elan göndərilərkən xəta:', error);
+                alert('Elan göndərilərkən xəta baş verdi.');
+            }
+        }
+
+        // Elanı sil
+        async function deleteAnnouncement(id) {
+            if (confirm('Bu elanı silmək istədiyinizə əminsiniz?')) {
+                try {
+                    const res = await fetch(`${API_URL}/admin/announcements/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert('Elan uğurla silindi.');
+                        loadAnnouncements(); // Siyahını yenilə
+                    } else {
+                        alert('Elan silinərkən xəta baş verdi.');
+                    }
+                } catch (error) {
+                    console.error('Elan silinərkən xəta:', error);
+                    alert('Elan silinərkən xəta baş verdi.');
+                }
+            }
+        }
+
+        // Fəaliyyətləri yüklə
+        async function loadActivities() {
+            try {
+                // Server ID-ni dropdown seçimindən al
+                const serverSelect = document.getElementById('serverSelect');
+                const serverId = serverSelect.value;
+                
+                if (!serverId) {
+                    document.getElementById('activityList').innerHTML = '<div class="activity-item">Server ID təyin edilməyib.</div>';
+                    return;
+                }
+
+                const res = await fetch(`${API_URL}/activities?limit=20&serverId=${serverId}`);
+                if (!res.ok) {
+                    throw new Error('Fəaliyyətlər yüklənərkən xəta baş verdi');
+                }
+                
+                const activities = await res.json();
+                const activityList = document.getElementById('activityList');
+                activityList.innerHTML = ''; // Siyahını təmizlə
+                
+                if (activities.length === 0) {
+                    activityList.innerHTML = '<div class="activity-item">Heç bir fəaliyyət tapılmadı.</div>';
+                    return;
+                }
+
+                activities.forEach(activity => {
+                    const div = document.createElement('div');
+                    div.className = 'activity-item';
+                    div.innerHTML = `
+                        <strong>${activity.username} - ${activity.action}</strong>
+                        <p>${activity.details}</p>
+                        <small>${new Date(activity.timestamp).toLocaleString('az-AZ')}</small>
+                    `;
+                    activityList.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Fəaliyyətlər yüklənərkən xəta:', error);
+                document.getElementById('activityList').innerHTML = '<div class="activity-item" style="color: var(--danger);">Fəaliyyətlər yüklənərkən xəta baş verdi.</div>';
+            }
+        }
+
+        // Bütün fəaliyyətləri təmizlə
+        async function clearAllActivities() {
+            if (confirm('Bütün fəaliyyətləri silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.')) {
+                try {
+                    const res = await fetch(API_URL + '/activities', {
+                        method: 'DELETE'
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert('Bütün fəaliyyətlər uğurla silindi.');
+                        loadActivities(); // Siyahını yenilə
+                    } else {
+                        alert('Fəaliyyətlər silinərkən xəta baş verdi.');
+                    }
+                } catch (error) {
+                    console.error('Fəaliyyətlər silinərkən xəta:', error);
+                    alert('Fəaliyyətlər silinərkən xəta baş verdi.');
+                }
+            }
+        }
+
+        // Bağlı istifadəçiləri yüklə
+        async function loadConnectedUsers() {
+            try {
+                const res = await fetch(API_URL + '/admin/connected-users');
+                const connectedUsers = await res.json();
+                const connectedUsersList = document.getElementById('connectedUsersList');
+                connectedUsersList.innerHTML = ''; // Siyahını təmizlə
+
+                if (connectedUsers.length === 0) {
+                    connectedUsersList.innerHTML = '<li class="list-item">Heç bir bağlı istifadəçi yoxdur.</li>';
+                    return;
+                }
+
+                connectedUsers.forEach(user => {
+                    const li = document.createElement('li');
+                    li.className = 'list-item';
+                    li.innerHTML = `
+                        <span><strong>${user.username}</strong> (ID: ${user.discordId}) - Qoşulma Tarixi: ${new Date(user.connectedAt).toLocaleString('az-AZ')}</span>
+                    `;
+                    connectedUsersList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Bağlı istifadəçilər yüklənərkən xəta:', error);
+                const connectedUsersList = document.getElementById('connectedUsersList');
+                connectedUsersList.innerHTML = '<li class="list-item" style="color: var(--danger);">Bağlı istifadəçilər yüklənərkən xəta baş verdi.</li>';
+            }
+        }
+
+        // Səhifə yükləndikdə admin yoxlaması
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const mainContent = document.getElementById('mainContent');
+            
+            try {
+                const response = await fetch('/api/admin/check');
+                if (!response.ok) {
+                    window.location.href = '/auth/discord';
+                    return;
+                }
+                
+                // Admin yoxlaması uğurlu olduqda məlumatları yüklə
+                await Promise.all([
+                    loadAnnouncements(),
+                    loadServers(), // Önce serverleri yükle
+                    loadConnectedUsers() // İsteğe bağlı olarak bağlı kullanıcıları da servere göre filtreleyebilirsiniz
+                ]);
+
+                // Yükləmə bitdikdən sonra
+                loadingScreen.style.display = 'none';
+                mainContent.classList.add('loaded');
+            } catch (error) {
+                console.error('Admin yoxlama xətası:', error);
+                window.location.href = '/auth/discord';
+            }
+        });
+
+        document.getElementById('searchUserButton').addEventListener('click', fetchConnectedUsers);
+
+        // Server seçimi dəyişdikdə fəaliyyətləri yenilə
+        document.getElementById('serverSelect').addEventListener('change', loadActivities);
+
+        async function fetchConnectedUsers() {
+            const discordId = document.getElementById('discordIdSearchInput').value;
+            let url = '/api/admin/connected-users';
+            if (discordId) {
+                url = `/api/admin/connected-users/search?discordId=${discordId}`;
+            }
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP xətası! Status: ${response.status}`);
+                }
+                const users = await response.json();
+                displayConnectedUsers(users);
+            } catch (error) {
+                console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
+                const usersList = document.getElementById('connectedUsersList');
+                usersList.innerHTML = '<li>İstifadəçilər yüklənərkən xəta baş verdi.</li>';
+            }
+        }
+
+        function displayConnectedUsers(users) {
+            const usersList = document.getElementById('connectedUsersList');
+            usersList.innerHTML = ''; // Clear current list
+
+            if (users.length === 0) {
+                usersList.innerHTML = '<li class="list-item">İstifadəçi tapılmadı.</li>';
+                return;
+            }
+
+            users.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.className = 'list-item';
+                
+                const connectionDate = new Date(user.connectedAt).toLocaleString('az-AZ');
+                const isActive = new Date(user.connectedAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+                
+                listItem.innerHTML = `
+                    <div class="user-info">
+                        <div class="username">${user.discordUsername || 'İstifadəçi adı yoxdur'}</div>
+                        <div class="discord-id">Discord ID: ${user.discordId}</div>
+                        <div class="connection-date">Qoşulma tarixi: ${connectionDate}</div>
                     </div>
-                    <div class="activity-content">
-                        <div class="activity-title">${activity.title}</div>
-                        <div class="activity-description">${activity.description || ''}</div>
-                        <div class="activity-time">${activity.date}</div>
+                    <div class="user-status ${isActive ? 'status-active' : 'status-inactive'}">
+                        ${isActive ? 'Aktiv' : 'Qeyri-aktiv'}
                     </div>
                 `;
-                activityList.appendChild(li);
+                
+                usersList.appendChild(listItem);
             });
         }
 
-        // Initial load
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchDashboardData();
-            setInterval(fetchDashboardData, 30000);
-            displayActivities();
-            setInterval(displayActivities, 30000);
-            
-            // Sayfa yüklendiğinde bildirim izni iste
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(reg => {
-                    reg.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                    }).then(subscription => {
-                        fetch('/api/subscribe', {
-                            method: 'POST',
-                            body: JSON.stringify(subscription),
-                            headers: { 'Content-Type': 'application/json' }
-                        });
-                    }).catch(err => console.error('Bildirim izni alınamadı:', err));
-                });
-            }
-        });
+        // Load users when the page loads
+        fetchConnectedUsers();
 
-        const publicVapidKey = 'BF_gMcKgs2qIU5L028tm1dM-GutD60RlEjAuqsZEjT9wudyvxrTCdUf_-ERupEtl_JeJMEw53i_t-MOVa_1b1AI';
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
-        }
     </script>
 </body>
-</html>
+</html> 
