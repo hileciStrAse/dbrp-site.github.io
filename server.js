@@ -287,16 +287,16 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
 // Admin paneli route
 app.get('/admin', ensureAuthenticated, async (req, res) => {
     try {
-        const adminUser = await Admin.findOne({ where: { discordId: req.session.discordId } });
-        if (adminUser) {
-            const adminPath = path.join(__dirname, 'public', 'admin.html');
-            if (fs.existsSync(adminPath)) {
-                res.sendFile(adminPath);
-            } else {
-                res.status(404).send('admin.html tapılmadı');
-            }
+        // Yalnız .env-də təyin olunmuş ADMIN_DISCORD_ID sahibi giriş edə bilər
+        if (req.session.discordId !== process.env.ADMIN_DISCORD_ID) {
+            return res.status(403).send('Bu səhifəyə giriş icazəniz yoxdur.');
+        }
+
+        const adminPath = path.join(__dirname, 'public', 'admin.html');
+        if (fs.existsSync(adminPath)) {
+            res.sendFile(adminPath);
         } else {
-            res.status(403).send('Bu səhifəyə giriş icazəniz yoxdur.');
+            res.status(404).send('admin.html tapılmadı');
         }
     } catch (error) {
         console.error('Admin paneli autentifikasiya xətası:', error);
