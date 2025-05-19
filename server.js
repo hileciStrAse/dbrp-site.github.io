@@ -6,7 +6,7 @@ const fs = require('fs');
 const webpush = require('web-push');
 const { Sequelize, DataTypes } = require('sequelize');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
+const MySQLStore = require('express-mysql-session')(session);
 const cookieParser = require('cookie-parser');
 const ActivityServiceClass = require('./services/activityService');
 const passport = require('passport');
@@ -27,9 +27,23 @@ const ensureAuthenticated = (req, res, next) => {
     next();
 };
 
+// MySQL verilənlər bazası konfiqurasiyası
 const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './database.sqlite'
+    dialect: 'mysql',
+    host: process.env.DB_HOST || 'localhost',
+    username: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'dbrp_db',
+    logging: false
+});
+
+// Sessiya mağazası üçün MySQL konfiqurasiyası
+const sessionStore = new MySQLStore({
+    host: process.env.DB_HOST || 'localhost',
+    port: 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'dbrp_db'
 });
 
 const app = express();
@@ -43,13 +57,10 @@ app.use(cookieParser());
 
 // Sessiya konfiqurasiyası
 app.use(session({
-    store: new SQLiteStore({
-        db: 'sessions.sqlite',
-        dir: './'
-    }),
+    store: sessionStore,
     secret: 'dbrp_admin_panel_2024_secure_session_key_123456789',
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     cookie: { 
         secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
         maxAge: 1000 * 60 * 60 * 24,
@@ -119,8 +130,13 @@ const ActivityService = new ActivityServiceClass(Activity);
 // Verilənlər bazasını sinxronizasiya et
 async function syncDatabase() {
     try {
-        await sequelize.sync();
-        console.log('Database synced successfully.');
+        await sequelize.authenticate();
+        console.log('MySQL verilənlər bazasına qoşulma uğurlu oldu.');
+        
+        // `alter: true` mövcud cədvəlləri saxlayaraq yeniləyir
+        await sequelize.sync({ alter: true }); 
+        console.log('Verilənlər bazası sinxronizasiya edildi.');
+        
         const initialAdminId = process.env.ADMIN_DISCORD_ID;
         if (initialAdminId) {
             const existingAdmin = await Admin.findOne({ where: { discordId: initialAdminId } });
@@ -563,6 +579,27 @@ app.get('/auth/discord/callback', async (req, res) => {
                                 is_verified: true,
                                 connectedAt: new Date()
                             });
+                        }
+
+                        // FIN API-də şifrəni yenilə
+                        try {
+                            const finApiUrl = 'https://dbrp.onrender.com/bot_api/users/update_password';
+                            const updateResponse = await fetch(finApiUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    fin_code: regFinCode,
+                                    new_password: regHashedPassword
+                                })
+                            });
+
+                            if (!updateResponse.ok) {
+                                console.error('FIN API şifrə yeniləmə xətası:', await updateResponse.text());
+                            }
+                        } catch (apiError) {
+                            console.error('FIN API şifrə yeniləmə xətası:', apiError);
                         }
 
                         // Qeydiyyat məlumatlarını sessiyadan sil
