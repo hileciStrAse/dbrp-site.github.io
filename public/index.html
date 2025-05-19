@@ -177,62 +177,62 @@
         .user-profile {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 12px;
-            background: var(--glass);
-            transition: all 0.3s ease;
+            position: relative;
+            padding: 5px 10px;
+            border-radius: 20px;
+            transition: background-color 0.3s ease;
         }
 
         .user-profile:hover {
-            background: rgba(0, 200, 255, 0.15);
+            background-color: rgba(255, 255, 255, 0.1);
         }
 
         .user-profile img {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            border: 2px solid var(--primary);
+            border: 2px solid var(--accent-color);
         }
 
-        .user-profile .username {
-            color: var(--light);
+        .username {
+            color: var(--text-color);
             font-weight: 500;
         }
 
-        .user-profile .dropdown {
+        .dropdown {
             position: relative;
             display: inline-block;
         }
 
-        .user-profile .dropdown-content {
+        .dropdown-content {
             display: none;
             position: absolute;
             right: 0;
-            background: var(--glass);
+            background-color: var(--bg-color);
             min-width: 160px;
-            box-shadow: var(--shadow);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
             border-radius: 8px;
             z-index: 1;
-            margin-top: 8px;
-        }
-
-        .user-profile .dropdown-content a {
-            color: var(--light);
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            transition: all 0.3s ease;
-        }
-
-        .user-profile .dropdown-content a:hover {
-            background: rgba(0, 200, 255, 0.15);
-            color: var(--primary);
+            margin-top: 5px;
         }
 
         .user-profile:hover .dropdown-content {
             display: block;
+        }
+
+        .dropdown-content a {
+            color: var(--text-color);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s ease;
+        }
+
+        .dropdown-content a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--accent-color);
         }
         
         /* Dashboard Cards */
@@ -827,10 +827,24 @@
 <body>
     <!-- Authentication Status / User Info -->
     <div class="auth-status" id="authStatus">
-        <a href="/login.html" id="loginLink" class="auth-link">Giriş</a>
-        <span class="auth-separator">|</span>
-        <a href="/register.html" id="registerLink" class="auth-link">Qeydiyyat</a>
-        <!-- Logged in state will be added later -->
+        <!-- Giriş edilməmiş vəziyyətdə -->
+        <div id="notLoggedIn" style="display: none;">
+            <a href="/login.html" class="auth-link">Giriş</a>
+            <span class="auth-separator">|</span>
+            <a href="/register.html" class="auth-link">Qeydiyyat</a>
+        </div>
+        <!-- Giriş edilmiş vəziyyətdə -->
+        <div id="loggedIn" style="display: none;">
+            <div class="user-profile">
+                <img src="" alt="Discord Avatar" id="userAvatar">
+                <span class="username" id="username"></span>
+                <div class="dropdown">
+                    <div class="dropdown-content">
+                        <a href="#" id="logoutBtn">Hesabdan çıxış</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Navigation -->
@@ -1101,40 +1115,47 @@
             return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
         }
 
-        // Discord profili məlumatlarını yüklə
-        async function loadUserProfile() {
+        // Səhifə yükləndikdə giriş vəziyyətini yoxla
+        document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const response = await fetch('/api/user/profile');
                 if (response.ok) {
                     const userData = await response.json();
+                    // Giriş edilmiş vəziyyəti göstər
+                    document.getElementById('notLoggedIn').style.display = 'none';
+                    document.getElementById('loggedIn').style.display = 'block';
+                    
+                    // Profil məlumatlarını doldur
                     document.getElementById('userAvatar').src = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`;
                     document.getElementById('username').textContent = userData.username;
                 } else {
-                    window.location.href = '/login.html';
+                    // Giriş edilməmiş vəziyyəti göstər
+                    document.getElementById('notLoggedIn').style.display = 'block';
+                    document.getElementById('loggedIn').style.display = 'none';
                 }
             } catch (error) {
                 console.error('Profil məlumatları yüklənərkən xəta:', error);
-                window.location.href = '/login.html';
+                // Xəta halında giriş edilməmiş vəziyyəti göstər
+                document.getElementById('notLoggedIn').style.display = 'block';
+                document.getElementById('loggedIn').style.display = 'none';
             }
-        }
+        });
 
         // Hesabdan çıxış
         document.getElementById('logoutBtn').addEventListener('click', async (e) => {
             e.preventDefault();
             try {
                 const response = await fetch('/api/auth/logout', {
-                    method: 'POST'
+                    method: 'POST',
+                    credentials: 'include'
                 });
                 if (response.ok) {
-                    window.location.href = '/login.html';
+                    window.location.href = '/';
                 }
             } catch (error) {
                 console.error('Hesabdan çıxış zamanı xəta:', error);
             }
         });
-
-        // Səhifə yükləndikdə profili yüklə
-        document.addEventListener('DOMContentLoaded', loadUserProfile);
     </script>
 </body>
 </html>
