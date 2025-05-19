@@ -727,43 +727,42 @@ app.setDiscordClient = (client) => {
 // FIN kod ilə istifadəçi tapmaq endpointi
 app.get('/api/user/fin/:finCode', async (req, res) => {
     const finCode = req.params.finCode.toUpperCase();
-    const finApiUrl = process.env.FIN_API_URL;
-
-    if (!finApiUrl) {
-        console.error('FIN_API_URL ətraf mühit dəyişəni təyin edilməyib.');
-        return res.status(500).json({ success: false, message: 'Serverdə konfigurasiya xətası.' });
-    }
+    const finDataUrl = 'https://dbrp.onrender.com/bot_api/users/vesiqe'; // Verilərin olduğu URL
 
     try {
-        const response = await fetch(`${finApiUrl}/user/fin/${finCode}`);
+        // Bütün istifadəçi məlumatlarını URL-dən çəkin
+        const response = await fetch(finDataUrl);
 
         if (!response.ok) {
-            // API cavabı uğursuz olduqda
-            if (response.status === 404) {
-                return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapılmadı.' });
-            } else {
-                console.error(`FIN API istifadəçi sorğusu xətası: ${response.status} ${response.statusText}`);
-                return res.status(response.status).json({ success: false, message: `API sorğusu uğursuz oldu: ${response.statusText}` });
-            }
+            console.error(`FIN verilənləri URL-dən çəkilərkən xəta: ${response.status} ${response.statusText}`);
+            return res.status(response.status).json({ success: false, message: `Verilənlər çəkilərkən xəta: ${response.statusText}` });
         }
 
-        const userData = await response.json();
+        const users = await response.json();
 
-        // API-dən gələn məlumatların formatına əmin olun
-        if (!userData || typeof userData.discordId === 'undefined') {
-             console.error('FIN API-dən gözlənilməyən cavab formatı:', userData);
-             return res.status(500).json({ success: false, message: 'API-dən gözlənilməyən məlumat formatı.' });
+        if (!Array.isArray(users)) {
+             console.error('FIN verilərlərindən gözlənilməyən format:', users);
+             return res.status(500).json({ success: false, message: 'Xarici API-dən gözlənilməyən məlumat formatı.' });
         }
 
-        // Verilənlər bazamızda bu discordId ilə istifadəçi var mı yoxla
-        const connectedUser = await UpdatedConnectedUser.findOne({ where: { discordId: userData.discordId } });
+        // Çəkilmiş siyahıdan FIN koda görə istifadəçini tapın
+        const foundUser = users.find(user => user.fin_kod && user.fin_kod.toUpperCase() === finCode);
+
+        if (!foundUser) {
+             // API-də tapılmadı (siyahıda yoxdur)
+             return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapılmadı.' });
+        }
+
+        // Bizim verilənlər bazamızda bu discordId ilə istifadəçi var mı yoxla
+        const connectedUser = await UpdatedConnectedUser.findOne({ where: { discordId: foundUser.id } });
 
         if (!connectedUser) {
-             // API-də tapıldı, amma bizim DB-də yoxdursa, bu o deməkdir ki, qeydiyyatdan keçməyib
+             // API siyahısında tapıldı, amma bizim DB-də yoxdursa, bu o deməkdir ki, saytda qeydiyyatdan keçməyib
              return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapıldı, lakin saytda qeydiyyatdan keçməyib.' });
         }
 
-        res.json({ success: true, discordId: userData.discordId });
+        // Hər iki yerdə tapıldı, Discord ID-ni qaytar
+        res.json({ success: true, discordId: foundUser.id });
 
     } catch (error) {
         console.error('FIN kod ilə istifadəçi tapılarkən server xətası:', error);
@@ -774,45 +773,39 @@ app.get('/api/user/fin/:finCode', async (req, res) => {
 // FIN kod və Discord ID uyğunluğunu yoxlamaq endpointi (qeydiyyat üçün)
 app.post('/api/verify/fin', async (req, res) => {
     const { finCode, discordId } = req.body;
-    const finApiUrl = process.env.FIN_API_URL;
-
-    if (!finApiUrl) {
-        console.error('FIN_API_URL ətraf mühit dəyişəni təyin edilməyib.');
-        return res.status(500).json({ success: false, message: 'Serverdə konfigurasiya xətası.' });
-    }
+    const finDataUrl = 'https://dbrp.onrender.com/bot_api/users/vesiqe'; // Verilərin olduğu URL
 
     if (!finCode || !discordId) {
         return res.status(400).json({ success: false, message: 'FIN kod və Discord ID təmin edilməlidir.' });
     }
 
     try {
-        // API-dən FIN kod və Discord ID uyğunluğunu yoxla
-        const response = await fetch(`${finApiUrl}/verify/fin`, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ finCode, discordId })
-        });
+        // Bütün istifadəçi məlumatlarını URL-dən çəkin
+        const response = await fetch(finDataUrl);
 
         if (!response.ok) {
-             // API cavabı uğursuz olduqda
-             if (response.status === 400) {
-                  const errorData = await response.json();
-                  return res.status(400).json({ success: false, message: errorData.message || 'API-dən uyğunsuzluq cavabı gəldi.' });
-             } else {
-                  console.error(`FIN API doğrulama sorğusu xətası: ${response.status} ${response.statusText}`);
-                  return res.status(response.status).json({ success: false, message: `API doğrulama sorğusu uğursuz oldu: ${response.statusText}` });
-             }
+            console.error(`FIN verilənləri URL-dən çəkilərkən xəta: ${response.status} ${response.statusText}`);
+            return res.status(response.status).json({ success: false, message: `Verilənlər çəkilərkən xəta: ${response.statusText}` });
         }
 
-        const verificationData = await response.json();
-
-        // API-dən gələn məlumatların formatına əmin olun
-        if (!verificationData || typeof verificationData.isValid === 'undefined') {
-             console.error('FIN API doğrulama endpointindən gözlənilməyən cavab formatı:', verificationData);
-             return res.status(500).json({ success: false, message: 'API-dən gözlənilməyən doğrulama məlumatı formatı.' });
+        const users = await response.json();
+        
+        if (!Array.isArray(users)) {
+             console.error('FIN verilərlərindən gözlənilməyən format:', users);
+             return res.status(500).json({ success: false, message: 'Xarici API-dən gözlənilməyən məlumat formatı.' });
         }
 
-        res.json({ success: true, isValid: verificationData.isValid });
+        // Çəkilmiş siyahıdan FIN kod və Discord ID uyğunluğunu yoxlayın
+        const isMatch = users.some(user => 
+            user.fin_kod && user.fin_kod.toUpperCase() === finCode.toUpperCase() && 
+            user.id && user.id === discordId
+        );
+
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'FIN kod və Discord ID uyğun deyil və ya tapılmadı.' });
+        }
+
+        res.json({ success: true, isValid: isMatch });
 
     } catch (error) {
         console.error('FIN kod doğrulama zamanı server xətası:', error);
