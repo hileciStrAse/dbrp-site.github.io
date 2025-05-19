@@ -566,7 +566,7 @@ app.get('/auth/discord/callback', async (req, res) => {
                         delete req.session.regHashedPassword;
                         delete req.session.regApiUser;
                         req.session.save(() => {
-                            res.redirect('/dashboard.html?registered=true');
+                            res.redirect('/?registered=true');
                         });
                     } catch (dbError) {
                         console.error('Qeydiyyat zamanı verilənlər bazası xətası:', dbError);
@@ -596,7 +596,7 @@ app.get('/auth/discord/callback', async (req, res) => {
                     if (userData.id === process.env.ADMIN_DISCORD_ID) {
                         res.redirect('/admin.html');
                     } else {
-                        res.redirect('/dashboard.html');
+                        res.redirect('/');
                     }
                 } catch (dbError) {
                     console.error('Discord girişi zamanı verilənlər bazası xətası:', dbError);
