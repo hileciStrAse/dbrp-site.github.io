@@ -6,7 +6,7 @@ const fs = require('fs');
 const webpush = require('web-push');
 const { Sequelize, DataTypes } = require('sequelize');
 const session = require('express-session');
-const MySQLStore = require('express-mysql-session')(session);
+const createPgSession = require('connect-pg-simple')(session);
 const cookieParser = require('cookie-parser');
 const ActivityServiceClass = require('./services/activityService');
 const passport = require('passport');
@@ -27,23 +27,32 @@ const ensureAuthenticated = (req, res, next) => {
     next();
 };
 
-// MySQL verilənlər bazası konfiqurasiyası
+// PostgreSQL verilənlər bazası konfiqurasiyası
 const sequelize = new Sequelize({
-    dialect: 'mysql',
+    dialect: 'postgres',
     host: process.env.DB_HOST || 'localhost',
-    username: process.env.DB_USER || 'root',
+    username: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'dbrp_db',
-    logging: false
+    logging: false,
+    dialectOptions: {
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    }
 });
 
-// Sessiya mağazası üçün MySQL konfiqurasiyası
-const sessionStore = new MySQLStore({
+// Sessiya mağazası üçün PostgreSQL konfiqurasiyası
+const pgPool = require('pg').Pool; // pg paketini daxil et
+const pool = new pgPool({
     host: process.env.DB_HOST || 'localhost',
-    port: 3306,
-    user: process.env.DB_USER || 'root',
+    user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'dbrp_db'
+    database: process.env.DB_NAME || 'dbrp_db',
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+const sessionStore = new createPgSession({
+    pool: pool,
+    tableName: 'session'
 });
 
 const app = express();
@@ -131,7 +140,7 @@ const ActivityService = new ActivityServiceClass(Activity);
 async function syncDatabase() {
     try {
         await sequelize.authenticate();
-        console.log('MySQL verilənlər bazasına qoşulma uğurlu oldu.');
+        console.log('PostgreSQL verilənlər bazasına qoşulma uğurlu oldu.');
         
         // `alter: true` mövcud cədvəlləri saxlayaraq yeniləyir
         await sequelize.sync({ alter: true }); 
