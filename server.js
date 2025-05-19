@@ -427,7 +427,7 @@ app.post('/api/register/initiate', async (req, res) => {
 // Mövcud Qeydiyyat Endpointini dəyişdiririk (artıq Discord callback tərəfindən çağırılacaq)
 // app.post('/api/register', ...)
 
-// Discord OAuth2 callback endpointini yenilə
+// Discord OAuth2 endpointini yenilə
 app.get('/auth/discord', (req, res) => {
     const params = {
         client_id: process.env.DISCORD_CLIENT_ID,
@@ -453,11 +453,11 @@ app.get('/auth/discord/callback', async (req, res) => {
         console.error('Discord OAuth2 xətası:', error, errorDescription);
         return res.status(400).send(`
             <html>
-                <body>
-                    <h1>Discord OAuth2 Xətası</h1>
+                <body style="background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px;">
+                    <h1>Discord Giriş Xətası</h1>
                     <p>Xəta: ${error}</p>
                     <p>Açıqlama: ${errorDescription}</p>
-                    <p>Zəhmət olmasa yenidən cəhd edin: <a href="/auth/discord">Discord ilə Giriş</a></p>
+                    <p>Zəhmət olmasa yenidən cəhd edin: <a href="/auth/discord" style="color: #00c8ff;">Discord ilə Giriş</a></p>
                 </body>
             </html>
         `);
@@ -467,23 +467,15 @@ app.get('/auth/discord/callback', async (req, res) => {
         console.error('Discord OAuth2 kodu alınmadı:', req.query);
         return res.status(400).send(`
             <html>
-                <body>
-                    <h1>Discord OAuth2 kodu alınmadı</h1>
+                <body style="background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px;">
+                    <h1>Discord Giriş Kodu Alınmadı</h1>
                     <p>Zəhmət olmasa aşağıdakıları yoxlayın:</p>
                     <ul>
                         <li>Discord Developer Portal-da Redirect URI-nin <code>https://dbrpbot.onrender.com/auth/discord/callback</code> olaraq tənzimləndiyindən əmin olun</li>
                         <li>Client ID və Client Secret-ın düzgün olduğundan əmin olun</li>
                         <li>Brauzerinizin çərəzlərini təmizləyin və yenidən cəhd edin</li>
                     </ul>
-                    <p>Xəta detalları:</p>
-                    <pre>${JSON.stringify({
-                        query: req.query,
-                        headers: req.headers,
-                        cookies: req.cookies,
-                        url: req.url,
-                        originalUrl: req.originalUrl
-                    }, null, 2)}</pre>
-                    <p>Zəhmət olmasa yenidən cəhd edin: <a href="/auth/discord">Discord ilə Giriş</a></p>
+                    <p>Zəhmət olmasa yenidən cəhd edin: <a href="/auth/discord" style="color: #00c8ff;">Discord ilə Giriş</a></p>
                 </body>
             </html>
         `);
@@ -506,10 +498,12 @@ app.get('/auth/discord/callback', async (req, res) => {
             },
         });
 
-        const tokenData = await tokenResponse.json();
-        if (tokenData.error) {
-            throw new Error(`Token xətası: ${tokenData.error}`);
+        if (!tokenResponse.ok) {
+            const errorData = await tokenResponse.json();
+            throw new Error(`Token xətası: ${errorData.error_description || errorData.error || 'Naməlum xəta'}`);
         }
+
+        const tokenData = await tokenResponse.json();
 
         // İstifadəçi məlumatlarını əldə et
         const userResponse = await fetch('https://discord.com/api/users/@me', {
@@ -518,10 +512,11 @@ app.get('/auth/discord/callback', async (req, res) => {
             },
         });
 
-        const userData = await userResponse.json();
-        if (!userData.id) {
+        if (!userResponse.ok) {
             throw new Error('İstifadəçi məlumatları alına bilmədi');
         }
+
+        const userData = await userResponse.json();
 
         // Sessiyanı yenilə
         req.session.discordId = userData.id;
@@ -531,7 +526,16 @@ app.get('/auth/discord/callback', async (req, res) => {
         // Sessiyanı yadda saxla
         req.session.save(async (err) => {
             if (err) {
-                return res.status(500).send('Sessiya yadda saxlanılarkən xəta baş verdi.');
+                console.error('Sessiya yadda saxlanılarkən xəta:', err);
+                return res.status(500).send(`
+                    <html>
+                        <body style="background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px;">
+                            <h1>Sessiya Xətası</h1>
+                            <p>Sessiya yadda saxlanılarkən xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.</p>
+                            <p><a href="/auth/discord" style="color: #00c8ff;">Discord ilə Giriş</a></p>
+                        </body>
+                    </html>
+                `);
             }
 
             // Qeydiyyat axınıdırsa
@@ -574,7 +578,15 @@ app.get('/auth/discord/callback', async (req, res) => {
                         delete req.session.regHashedPassword;
                         delete req.session.regApiUser;
                         req.session.save(() => {
-                            res.status(500).send('Qeydiyyat zamanı verilənlər bazası xətası.');
+                            res.status(500).send(`
+                                <html>
+                                    <body style="background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px;">
+                                        <h1>Verilənlər Bazası Xətası</h1>
+                                        <p>Qeydiyyat zamanı verilənlər bazası xətası baş verdi. Zəhmət olmasa yenidən cəhd edin.</p>
+                                        <p><a href="/auth/discord" style="color: #00c8ff;">Discord ilə Giriş</a></p>
+                                    </body>
+                                </html>
+                            `);
                         });
                     }
                 } else {
@@ -582,7 +594,15 @@ app.get('/auth/discord/callback', async (req, res) => {
                     delete req.session.regHashedPassword;
                     delete req.session.regApiUser;
                     req.session.save(() => {
-                        res.status(400).send('FIN kodunuzla əlaqəli Discord hesabı fərqlidir. Zəhmət olmasa, doğru Discord hesabı ilə giriş edin.');
+                        res.status(400).send(`
+                            <html>
+                                <body style="background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px;">
+                                    <h1>Discord Hesabı Uyğunluğu</h1>
+                                    <p>FIN kodunuzla əlaqəli Discord hesabı fərqlidir. Zəhmət olmasa, doğru Discord hesabı ilə giriş edin.</p>
+                                    <p><a href="/auth/discord" style="color: #00c8ff;">Discord ilə Giriş</a></p>
+                                </body>
+                            </html>
+                        `);
                     });
                 }
             } else {
@@ -600,7 +620,15 @@ app.get('/auth/discord/callback', async (req, res) => {
                     }
                 } catch (dbError) {
                     console.error('Discord girişi zamanı verilənlər bazası xətası:', dbError);
-                    res.status(500).send('Giriş zamanı verilənlər bazası xətası.');
+                    res.status(500).send(`
+                        <html>
+                            <body style="background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px;">
+                                <h1>Verilənlər Bazası Xətası</h1>
+                                <p>Giriş zamanı verilənlər bazası xətası baş verdi. Zəhmət olmasa yenidən cəhd edin.</p>
+                                <p><a href="/auth/discord" style="color: #00c8ff;">Discord ilə Giriş</a></p>
+                            </body>
+                        </html>
+                    `);
                 }
             }
         });
@@ -610,7 +638,16 @@ app.get('/auth/discord/callback', async (req, res) => {
         delete req.session.regHashedPassword;
         delete req.session.regApiUser;
         req.session.save(() => {
-            res.status(500).send('Giriş/Qeydiyyat zamanı xəta baş verdi.');
+            res.status(500).send(`
+                <html>
+                    <body style="background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px;">
+                        <h1>Giriş Xətası</h1>
+                        <p>Giriş zamanı xəta baş verdi: ${error.message}</p>
+                        <p>Zəhmət olmasa yenidən cəhd edin.</p>
+                        <p><a href="/auth/discord" style="color: #00c8ff;">Discord ilə Giriş</a></p>
+                    </body>
+                </html>
+            `);
         });
     }
 });
