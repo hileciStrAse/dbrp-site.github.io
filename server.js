@@ -1,1140 +1,931 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DBRP - Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        :root {
-            --primary: #00c8ff;
-            --secondary: #0095ff;
-            --dark: #0f172a;
-            --darker: #0a1120;
-            --light: #f8fafc;
-            --glass: rgba(15, 23, 42, 0.7);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            --border: rgba(255, 255, 255, 0.15);
-            --glow: rgba(0, 200, 255, 0.3);
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(145deg, var(--darker) 0%, var(--dark) 100%);
-            color: var(--light);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-        
-        /* Navbar */
-        nav {
-            width: 280px;
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            height: 100vh;
-            padding: 30px 0;
-            position: fixed;
-            z-index: 100;
-            border-right: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            transition: transform 0.3s ease;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 40px;
-            padding: 0 20px;
-        }
-        
-        .logo img {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            margin-right: 12px;
-            object-fit: cover;
-            border: 2px solid var(--primary);
-            transition: transform 0.3s ease;
-        }
-        
-        .logo img:hover {
-            transform: scale(1.1);
-        }
-        
-        .logo h2 {
-            font-size: 1.6rem;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 600;
-        }
-        
-        nav ul {
-            list-style: none;
-            padding: 0 20px;
-        }
-        
-        nav ul li {
-            margin: 12px 0;
-            position: relative;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        nav ul li a {
-            text-decoration: none;
-            color: var(--light);
-            font-weight: 500;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            transition: all 0.3s ease;
-            border-radius: 10px;
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        nav ul li a::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        nav ul li a:hover::before, nav ul li a.active::before {
-            opacity: 1;
-        }
-        
-        nav ul li a i {
-            margin-right: 12px;
-            font-size: 18px;
-            width: 24px;
-            text-align: center;
-        }
-        
-        nav ul li a:hover, nav ul li a.active {
-            background: rgba(0, 200, 255, 0.15);
-            color: var(--primary);
-            transform: translateX(5px);
-        }
-        
-        nav ul li a:hover::after, nav ul li a.active::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 4px;
-            background: linear-gradient(180deg, var(--primary), var(--secondary));
-        }
-        
-        /* Main Content */
-        main {
-            margin-left: 280px;
-            padding: 40px;
-            min-height: 100vh;
-            transition: margin-left 0.3s ease;
-        }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .header h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const nodemailer = require('nodemailer');
+const fs = require('fs');
+const webpush = require('web-push');
+const { Sequelize, DataTypes } = require('sequelize');
+const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
+const cookieParser = require('cookie-parser');
+const ActivityServiceClass = require('./services/activityService');
+const passport = require('passport');
+const { DiscordStrategy } = require('passport-discord');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const bcrypt = require('bcrypt');
+require('dotenv').config();
+const { Op } = require('sequelize');
 
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 12px;
-            background: var(--glass);
-            transition: all 0.3s ease;
-        }
+// Discord bot client instance (başqa fayldan ötürüləcək)
+let discordClient = null;
 
-        .user-profile:hover {
-            background: rgba(0, 200, 255, 0.15);
-        }
+// Autentifikasiya middleware funksiyası
+const ensureAuthenticated = (req, res, next) => {
+    if (!req.session.discordId) {
+        return res.status(401).json({ error: 'Giriş icazəniz yoxdur.' });
+    }
+    next();
+};
 
-        .user-profile img {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid var(--primary);
-        }
+const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: './database.sqlite'
+});
 
-        .user-profile .username {
-            color: var(--light);
-            font-weight: 500;
-        }
+const app = express();
+const port = process.env.PORT || 5001;
 
-        .user-profile .dropdown {
-            position: relative;
-            display: inline-block;
-        }
+// Express-ə proxy arxasında işlədiyini bildirir (Render üçün vacibdir)
+app.set('trust proxy', 1);
 
-        .user-profile .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background: var(--glass);
-            min-width: 160px;
-            box-shadow: var(--shadow);
-            border-radius: 8px;
-            z-index: 1;
-            margin-top: 8px;
-        }
+// Cookie parser middleware'ini ekle
+app.use(cookieParser());
 
-        .user-profile .dropdown-content a {
-            color: var(--light);
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            transition: all 0.3s ease;
-        }
+// Sessiya konfiqurasiyası
+app.use(session({
+    store: new SQLiteStore({
+        db: 'sessions.sqlite',
+        dir: './'
+    }),
+    secret: 'dbrp_admin_panel_2024_secure_session_key_123456789',
+    resave: true,
+    saveUninitialized: true,
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
+        maxAge: 1000 * 60 * 60 * 24,
+        httpOnly: true,
+        sameSite: 'Lax',
+        path: '/',
+        domain: 'dbrpbot.onrender.com'
+    }
+}));
 
-        .user-profile .dropdown-content a:hover {
-            background: rgba(0, 200, 255, 0.15);
-            color: var(--primary);
-        }
+// Hər sorğuda sessiya vəziyyətini yoxlayan middleware (debug üçün)
+app.use((req, res, next) => {
+    console.log('-- Middleware Start --');
+    console.log('Middleware: Received request to', req.method, req.originalUrl);
+    console.log('Middleware: Session object:', req.session);
+    console.log('Middleware: Session ID:', req.sessionID);
+    console.log('Middleware: Discord ID in session:', req.session && req.session.discordId ? req.session.discordId : 'undefined or session null');
+    console.log('-- Middleware End --');
+    next();
+});
 
-        .user-profile:hover .dropdown-content {
-            display: block;
-        }
-        
-        /* Dashboard Cards */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        
-        .card {
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--border);
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .card:hover::before {
-            opacity: 1;
-        }
-        
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-            border-color: var(--primary);
-        }
-        
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        
-        .card-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-        
-        .card-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 200, 255, 0.15);
-            color: var(--primary);
-            transition: transform 0.3s ease;
-        }
-        
-        .card-icon:hover {
-            transform: rotate(360deg);
-        }
-        
-        .card-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        
-        .card-desc {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.65);
-        }
-        
-        .status-online {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--success);
-            margin-right: 8px;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-        
-        /* Bot Info Section */
-        .bot-info {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        
-        .bot-profile {
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .bot-profile::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .bot-profile:hover::before {
-            opacity: 1;
-        }
-        
-        .bot-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary);
-            margin: 0 auto 16px;
-            display: block;
-            transition: transform 0.3s ease;
-        }
-        
-        .bot-avatar:hover {
-            transform: scale(1.05);
-        }
-        
-        .bot-name {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .bot-status {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 16px;
-            color: var(--success);
-            font-size: 0.9rem;
-        }
-        
-        .bot-description {
-            color: rgba(255, 255, 255, 0.65);
-            font-size: 0.85rem;
-            margin-bottom: 24px;
-            line-height: 1.5;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 10px 24px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0, 152, 255, 0.3);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .btn:hover::before {
-            opacity: 1;
-        }
-        
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 152, 255, 0.5);
-            background: linear-gradient(90deg, var(--secondary), var(--primary));
-        }
-        
-        .bot-stats {
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .bot-stats::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .bot-stats:hover::before {
-            opacity: 1;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 16px;
-        }
-        
-        .stat-item {
-            padding: 16px;
-            border-radius: 12px;
-            background: rgba(0, 0, 0, 0.15);
-            transition: transform 0.3s ease;
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .stat-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .stat-item:hover::before {
-            opacity: 1;
-        }
-        
-        .stat-item:hover {
-            transform: translateY(-4px);
-        }
-        
-        .stat-label {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.65);
-            margin-bottom: 6px;
-        }
-        
-        .stat-value {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        
-        /* Recent Activity */
-        .activity-section {
-            background: var(--glass);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .activity-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .activity-section:hover::before {
-            opacity: 1;
-        }
-        
-        .section-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .section-title i {
-            margin-right: 12px;
-            color: var(--primary);
-        }
-        
-        .activity-list {
-            list-style: none;
-        }
-        
-        .activity-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-            transition: background 0.3s ease;
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .activity-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .activity-item:hover::before {
-            opacity: 1;
-        }
-        
-        .activity-item:hover {
-            background: rgba(0, 200, 255, 0.05);
-        }
-        
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-        
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 200, 255, 0.15);
-            color: var(--primary);
-            margin-right: 16px;
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-        }
-        
-        .activity-item:hover .activity-icon {
-            transform: scale(1.1);
-        }
-        
-        .activity-content {
-            flex: 1;
-        }
-        
-        .activity-title {
-            font-weight: 500;
-            font-size: 0.9rem;
-            margin-bottom: 4px;
-            color: inherit;
-        }
-        
-        .activity-description {
-            font-size: 0.78rem;
-            color: #b3b5b8;
-            font-weight: 600;
-            opacity: 0.95;
-        }
-        
-        .activity-time {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.45);
-        }
-        
-        /* Menu Toggle */
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1001;
-            background: var(--glass);
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
-            cursor: pointer;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            transition: transform 0.3s ease;
-            position: relative;
-            z-index: 1;
-            --mouse-x: 50%;
-            --mouse-y: 50%;
-        }
-        
-        .menu-toggle::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--glow) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .menu-toggle:hover::before {
-            opacity: 1;
-        }
-        
-        .menu-toggle:hover {
-            transform: rotate(90deg);
-        }
-        
-        /* Responsive */
-        @media (max-width: 1200px) {
-            nav {
-                width: 240px;
-            }
-            main {
-                margin-left: 240px;
+// CORS ayarları
+app.use(cors());
+
+// JSON ve URL-encoded verileri işleme
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Statik dosyalar için public klasörünü kullan
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Modelləri daxil edin və başlatın
+const Admin = require('./models/Admin')(sequelize, DataTypes);
+const Activity = require('./models/Activity')(sequelize, DataTypes);
+
+// ConnectedUser modelini yenilə: parol və is_verified sahələri əlavə et
+const UpdatedConnectedUser = sequelize.define('ConnectedUser', {
+    discordId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+    },
+    username: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    connectedAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+    },
+    password: {
+        type: DataTypes.STRING, // Hashed parol üçün
+        allowNull: true, // Hələ parol qoymayan Discord istifadəçiləri ola bilər
+    },
+    is_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false, // Başlanğıcda doğrulanmamış
+    },
+}, { timestamps: true });
+
+// Model təyinatını dəyişdir
+UpdatedConnectedUser.init(UpdatedConnectedUser.getAttributes(), { sequelize, modelName: 'ConnectedUser' });
+
+// ActivityService instansiyasını yaradın və Activity modelini ötürün
+const ActivityService = new ActivityServiceClass(Activity);
+
+// Verilənlər bazasını sinxronizasiya et
+async function syncDatabase() {
+    try {
+        await sequelize.sync();
+        console.log('Database synced successfully.');
+        const initialAdminId = process.env.ADMIN_DISCORD_ID;
+        if (initialAdminId) {
+            const existingAdmin = await Admin.findOne({ where: { discordId: initialAdminId } });
+            if (!existingAdmin) {
+                await Admin.create({ discordId: initialAdminId });
+                console.log(`Initial admin ${initialAdminId} added to database.`);
             }
         }
-        
-        @media (max-width: 992px) {
-            .bot-info {
-                grid-template-columns: 1fr;
-            }
-            .dashboard-grid {
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            }
-        }
-        
-        @media (max-width: 768px) {
-            nav {
-                transform: translateX(-100%);
-                width: 260px;
-            }
-            nav.active {
-                transform: translateX(0);
-            }
-            main {
-                margin-left: 0;
-                padding: 24px;
-            }
-            .menu-toggle {
-                display: flex;
-            }
-            .header h1 {
-                font-size: 1.8rem;
-            }
-        }
-        
-        @media (max-width: 576px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            .bot-profile {
-                padding: 20px;
-            }
-            .bot-stats {
-                padding: 20px;
-            }
-            .activity-section {
-                padding: 20px;
-            }
-        }
+    } catch (error) {
+        console.error('Error syncing database:', error);
+    }
+}
 
-        .discord-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            background: #5865F2;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-top: 15px;
-        }
+syncDatabase();
 
-        .discord-btn:hover {
-            background: #4752C4;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(88, 101, 242, 0.2);
-        }
+// Ana sayfa route'u
+app.get('/', (req, res) => {
+    const indexPath = path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send('index.html tapılmadı');
+    }
+});
 
-        .discord-btn i {
-            font-size: 1.2em;
-        }
+// Xidmət şərtləri route'u
+app.get('/terms', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
 
-        /* Authentication Status styles */
-        .auth-status {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 110;
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            border-radius: 8px;
-            padding: 8px 15px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+// Məxfilik siyasəti route'u
+app.get('/privacy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
 
-        .auth-link {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
+// Emrler route'u
+app.get('/emrler', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'emrler.html'));
+});
 
-        .auth-link:hover {
-            color: var(--secondary);
-        }
+// Kontakt route'u
+app.get('/kontakt', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'kontakt.html'));
+});
 
-        .auth-separator {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .auth-status {
-                position: static;
-                margin: 20px auto;
-                width: fit-content;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Authentication Status / User Info -->
-    <div class="auth-status" id="authStatus">
-        <a href="/login.html" id="loginLink" class="auth-link">Giriş</a>
-        <span class="auth-separator">|</span>
-        <a href="/register.html" id="registerLink" class="auth-link">Qeydiyyat</a>
-        <!-- Logged in state will be added later -->
-    </div>
-
-    <!-- Navigation -->
-    <nav id="sidebar">
-        <div class="logo">
-            <img src="https://cdn.discordapp.com/attachments/1361729626757529601/1373342726782844968/ARP_3.png?ex=682a1095&is=6828bf15&hm=93ab55a4ab68d5d70d86379a6d40e09b65dd234267cf2ff000698a5a5897b420&" alt="DBRP Logo">
-            <h2>DBRP</h2>
-        </div>
-        <ul>
-            <li><a href="/" class="active"><i class="fas fa-home"></i>Dashboard</a></li>
-            <li><a href="/emrler"><i class="fas fa-code"></i>Əmrlər</a></li>
-            <li><a href="/kontakt"><i class="fas fa-envelope"></i>Kontakt</a></li>
-            <li><a href="/admin"><i class="fas fa-user-cog"></i> Admin Panel</a></li>
-        </ul>
-    </nav>
-
-    <!-- Main Content -->
-    <main>
-        <div class="menu-toggle" id="menuToggle">
-            <i class="fas fa-bars"></i>
-        </div>
-        
-        <div class="header">
-            <h1>Dashboard</h1>
-            <div class="user-profile">
-                <img src="" alt="Discord Avatar" id="userAvatar">
-                <span class="username" id="username"></span>
-                <div class="dropdown">
-                    <div class="dropdown-content">
-                        <a href="#" id="logoutBtn">Hesabdan çıxış</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Dashboard Cards -->
-        <div class="dashboard-grid">
-            <!-- Bot Məlumatları -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Bot Məlumatları</span>
-                    <div class="card-icon"><i class="fas fa-robot"></i></div>
-                </div>
-                <div class="card-value">
-                    <div class="stat-item">
-                        <div class="stat-label">Ad</div>
-                        <div class="stat-value" id="botName"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Versiya</div>
-                        <div class="stat-value" id="botVersion"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Təsvir</div>
-                        <div class="stat-value" id="botDescription"></div>
-                    </div>
-                </div>
-            </div>
-            <!-- Status -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Status</span>
-                    <div class="card-icon"><i class="fas fa-signal"></i></div>
-                </div>
-                <div class="card-value">
-                    <div class="stat-item">
-                        <div class="stat-label">Bot Statusu</div>
-                        <div class="stat-value"><span class="status-online" id="statusDot"></span> <span id="botStatus"></span></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">API Statusu</div>
-                        <div class="stat-value" id="apiStatus"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Sistem Statusu</div>
-                        <div class="stat-value" id="systemStatus"></div>
-                    </div>
-                </div>
-            </div>
-            <!-- Vaxt Məlumatları -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Vaxt Məlumatları</span>
-                    <div class="card-icon"><i class="fas fa-clock"></i></div>
-                </div>
-                <div class="card-value">
-                    <div class="stat-item">
-                        <div class="stat-label">Tarix</div>
-                        <div class="stat-value" id="currentDate"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Saat</div>
-                        <div class="stat-value" id="currentTime"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">İş Vaxtı</div>
-                        <div class="stat-value" id="uptime"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bot Info Section -->
-        <div class="bot-info">
-            <div class="bot-profile">
-                <img src="https://cdn.discordapp.com/attachments/1361729626757529601/1373342726782844968/ARP_3.png?ex=682a1095&is=6828bf15&hm=93ab55a4ab68d5d70d86379a6d40e09b65dd234267cf2ff000698a5a5897b420&" alt="Bot Avatar" class="bot-avatar">
-                <div class="bot-name" id="botProfileName"></div>
-                <div class="bot-status"><span class="status-online" id="botProfileStatusDot"></span> <span id="botProfileStatus"></span></div>
-                <div class="bot-description" id="botProfileDescription"></div>
-                <a href="/kontakt" class="btn">Əlaqə</a>
-                <a href="https://discord.com/oauth2/authorize?client_id=1360608736225394969&response_type=code&redirect_uri=https%3A%2F%2Fdbrpbot.onrender.com%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds" class="btn discord-btn"><i class="fab fa-discord"></i> Discord ilə Giriş</a>
-            </div>
-            <div class="bot-stats">
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-label">Bot Adı</div>
-                        <div class="stat-value" id="botStatsName"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Versiya</div>
-                        <div class="stat-value" id="botStatsVersion"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Status</div>
-                        <div class="stat-value" id="botStatsStatus"></div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">İş Vaxtı</div>
-                        <div class="stat-value" id="botStatsUptime"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="activity-section">
-            <h3 class="section-title"><i class="fas fa-bell"></i> Son Fəaliyyət</h3>
-            <ul class="activity-list" id="activityList"></ul>
-        </div>
-    </main>
-
-    <script>
-        // Toggle sidebar on mobile
-        document.getElementById('menuToggle').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('active');
-        });
-
-        // Mouse tracking for glow effect
-        const glowElements = document.querySelectorAll('.card, .bot-profile, .bot-stats, .activity-item, nav ul li a, .btn, .stat-item, .menu-toggle');
-        glowElements.forEach(element => {
-            element.addEventListener('mousemove', (e) => {
-                const rect = element.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                element.style.setProperty('--mouse-x', `${x}%`);
-                element.style.setProperty('--mouse-y', `${y}%`);
-            });
-            element.addEventListener('mouseleave', () => {
-                element.style.setProperty('--mouse-x', '50%');
-                element.style.setProperty('--mouse-y', '50%');
-            });
-        });
-
-        // Dinamik dashboard məlumatları üçün API-dən fetch
-        async function fetchDashboardData() {
-            try {
-                const response = await fetch('https://dbrp.onrender.com/api');
-                const data = await response.json();
-
-                // Bot Məlumatları
-                document.getElementById('botName').textContent = data.bot_info.name;
-                document.getElementById('botVersion').textContent = data.bot_info.version;
-                document.getElementById('botDescription').textContent = data.bot_info.description;
-
-                // Status
-                const botStatusEl = document.getElementById('botStatus');
-                botStatusEl.textContent = data.bot_status.status === 'online' ? 'Online' : 'Offline';
-                botStatusEl.style.color = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('statusDot').style.background = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('apiStatus').textContent = data.health_check.status === 'healthy' ? 'Online' : 'Offline';
-                document.getElementById('apiStatus').style.color = data.health_check.status === 'healthy' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('systemStatus').textContent = data.system_status.status === 'healthy' ? 'Sağlam' : 'Problemli';
-                document.getElementById('systemStatus').style.color = data.system_status.status === 'healthy' ? 'var(--success)' : 'var(--danger)';
-
-                // Vaxt Məlumatları
-                document.getElementById('currentDate').textContent = data.time_info.date;
-                document.getElementById('currentTime').textContent = data.time_info.time;
-                const uptime = data.system_status.uptime;
-                const hours = Math.floor(uptime / 3600);
-                const minutes = Math.floor((uptime % 3600) / 60);
-                document.getElementById('uptime').textContent = `${hours} saat ${minutes} dəqiqə`;
-
-                // Bot Info Section
-                document.getElementById('botProfileName').textContent = data.bot_info.name;
-                const botProfileStatus = document.getElementById('botProfileStatus');
-                botProfileStatus.textContent = data.bot_status.status === 'online' ? 'Online' : 'Offline';
-                botProfileStatus.style.color = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('botProfileStatusDot').style.background = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('botProfileDescription').textContent = data.bot_info.description;
-                document.getElementById('botStatsName').textContent = data.bot_info.name;
-                document.getElementById('botStatsVersion').textContent = data.bot_info.version;
-                const botStatsStatus = document.getElementById('botStatsStatus');
-                botStatsStatus.textContent = data.bot_status.status === 'online' ? 'Online' : 'Offline';
-                botStatsStatus.style.color = data.bot_status.status === 'online' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('botStatsUptime').textContent = `${hours} saat ${minutes} dəqiqə`;
-            } catch (error) {
-                console.error('Dashboard məlumatları yüklənərkən xəta baş verdi:', error);
-            }
-        }
-
-        // Load activities from server
-        async function loadActivities() {
-            const res = await fetch('/api/activities');
-            return await res.json();
-        }
-
-        // Display activities
-        async function displayActivities() {
-            const activityList = document.getElementById('activityList');
-            activityList.innerHTML = '';
-            const activities = await loadActivities();
-            activities.forEach(activity => {
-                const li = document.createElement('li');
-                li.className = 'activity-item';
-                li.innerHTML = `
-                    <div class="activity-icon">
-                        <i class="${activity.icon || 'fas fa-bell'}"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-title">${activity.title}</div>
-                        <div class="activity-description">${activity.description || ''}</div>
-                        <div class="activity-time">${activity.date}</div>
-                    </div>
-                `;
-                activityList.appendChild(li);
-            });
-        }
-
-        // Initial load
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchDashboardData();
-            setInterval(fetchDashboardData, 30000);
-            displayActivities();
-            setInterval(displayActivities, 30000);
-            
-            // Sayfa yüklendiğinde bildirim izni iste
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(reg => {
-                    reg.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                    }).then(subscription => {
-                        fetch('/api/subscribe', {
-                            method: 'POST',
-                            body: JSON.stringify(subscription),
-                            headers: { 'Content-Type': 'application/json' }
-                        });
-                    }).catch(err => console.error('Bildirim izni alınamadı:', err));
-                });
+// Kontakt formu üçün email göndərən endpoint
+app.post('/api/contact', async (req, res) => {
+    const { name, email, message } = req.body;
+    if (!name || !email || !message) {
+        return res.status(400).json({ success: false, error: 'Bütün sahələr doldurulmalıdır.' });
+    }
+    try {
+        // Nodemailer transporter (gmail üçün)
+        let transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'adeadem123321@gmail.com',
+                pass: 'afal slaf hysp xlzj' // Burada Gmail üçün App Password istifadə edilməlidir!
             }
         });
+        await transporter.sendMail({
+            from: email,
+            to: 'adeadem123321@gmail.com',
+            replyTo: email,
+            subject: `Yeni Kontakt Mesajı - ${name}`,
+            text: `Ad: ${name}\nEmail: ${email}\nMesaj: ${message}`,
+            html: `<b>Ad:</b> ${name}<br><b>Email:</b> ${email}<br><b>Mesaj:</b><br>${message}`
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Email göndərilərkən xəta:', err);
+        res.status(500).json({ success: false, error: 'Email göndərilə bilmədi.' });
+    }
+});
 
-        const publicVapidKey = 'BF_gMcKgs2qIU5L028tm1dM-GutD60RlEjAuqsZEjT9wudyvxrTCdUf_-ERupEtl_JeJMEw53i_t-MOVa_1b1AI';
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+// Fəaliyyətləri əldə et
+app.get('/api/activities', async (req, res) => {
+    const { limit = 20, skip = 0, serverId } = req.query;
+    if (!serverId) {
+        return res.status(400).json({ success: false, error: 'Server ID daxil edilməlidir.' });
+    }
+    try {
+        const activities = await ActivityService.getServerActivities(serverId, parseInt(limit), parseInt(skip));
+        res.json(activities);
+    } catch (error) {
+        console.error('Fəaliyyətlər əldə edilərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Fəaliyyətlər əldə edilərkən xəta baş verdi.' });
+    }
+});
+
+// Yeni fəaliyyət əlavə et (Bu endpoint ehtimal ki, artıq bot tərəfindən idarə olunur)
+// app.post('/api/activities', async (req, res) => {
+//     res.status(405).json({ success: false, error: 'Bu endpoint istifadə edilmir.' });
+// });
+
+// Bütün fəaliyyətləri sil (Admin üçün)
+app.delete('/api/activities', ensureAuthenticated, async (req, res) => {
+    try {
+        const adminUser = await Admin.findOne({ where: { discordId: req.session.discordId } });
+        if (!adminUser) {
+            return res.status(403).json({ success: false, error: 'Bu əməliyyat üçün icazəniz yoxdur.' });
         }
 
-        // Discord profili məlumatlarını yüklə
-        async function loadUserProfile() {
-            try {
-                const response = await fetch('/api/user/profile');
-                if (response.ok) {
-                    const userData = await response.json();
-                    document.getElementById('userAvatar').src = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`;
-                    document.getElementById('username').textContent = userData.username;
+        await ActivityService.deleteAllActivities();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Bütün fəaliyyətlər silinərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Bütün fəaliyyətlər silinərkən xəta baş verdi.' });
+    }
+});
+
+// VAPID açarlarını bura əlavə et (öz açarlarınla əvəz et)
+webpush.setVapidDetails(
+  'mailto:adeadem123321@gmail.com',
+  'BF_gMcKgs2qIU5L028tm1dM-GutD60RlEjAuqsZEjT9wudyvxrTCdUf_-ERupEtl_JeJMEw53i_t-MOVa_1b1AI',   // publicKey
+  'cqgyT5FPm7ArwccmH3UiDLxUpqtTmkxuos7E0l2OW-k'   // privateKey
+);
+
+const subsFile = './subscriptions.json';
+const announcementsFile = './announcements.json';
+
+// Abunə əlavə et
+app.post('/api/subscribe', (req, res) => {
+    const sub = req.body;
+    let subscriptions = [];
+    if (fs.existsSync(subsFile)) {
+        subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
+    }
+    if (!subscriptions.find(s => JSON.stringify(s) === JSON.stringify(sub))) {
+        subscriptions.push(sub);
+        fs.writeFileSync(subsFile, JSON.stringify(subscriptions, null, 2));
+    }
+    res.status(201).json({});
+});
+
+// Duyuruları oxu
+app.get('/api/announcements', (req, res) => {
+    if (fs.existsSync(announcementsFile)) {
+        const data = fs.readFileSync(announcementsFile, 'utf-8');
+        res.json(JSON.parse(data));
+    } else {
+        res.json([]);
+    }
+});
+
+// Yeni duyuru əlavə et və push göndər
+app.post('/api/announcements', (req, res) => {
+    const { title, message, date } = req.body;
+    if (!title || !message || !date) {
+        return res.status(400).json({ success: false, error: 'Bütün sahələr doldurulmalıdır.' });
+    }
+    let announcements = [];
+    if (fs.existsSync(announcementsFile)) {
+        announcements = JSON.parse(fs.readFileSync(announcementsFile, 'utf-8'));
+    }
+    const newAnn = { id: Date.now().toString(), title, message, date };
+    announcements.unshift(newAnn);
+    fs.writeFileSync(announcementsFile, JSON.stringify(announcements, null, 2));
+
+    // Push notification göndər
+    let subscriptions = [];
+    if (fs.existsSync(subsFile)) {
+        subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
+    }
+    const payload = JSON.stringify({ title, message });
+    subscriptions.forEach(sub => {
+        webpush.sendNotification(sub, payload).catch(err => console.error(err));
+    });
+
+    res.json({ success: true });
+});
+
+// Admin paneli üçün duyuru yönetimi endpoint'ləri (Database ilə)
+app.get('/api/admin/announcements', async (req, res) => {
+    try {
+        const announcements = await AnnouncementService.getAllAnnouncements();
+        res.json(announcements);
+    } catch (error) {
+        console.error('Elanlar əldə edilərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Elanlar əldə edilərkən xəta baş verdi.' });
+    }
+});
+
+app.post('/api/announcements', async (req, res) => {
+    const { title, message } = req.body;
+    if (!title || !message) {
+        return res.status(400).json({ success: false, error: 'Başlıq və mətn daxil edilməlidir.' });
+    }
+    try {
+        const newAnn = await AnnouncementService.createAnnouncement(title, message);
+
+        // Push notification göndər
+        let subscriptions = [];
+        if (fs.existsSync(subsFile)) {
+            subscriptions = JSON.parse(fs.readFileSync(subsFile, 'utf-8'));
+        }
+        const payload = JSON.stringify({ title, message });
+        subscriptions.forEach(sub => {
+            webpush.sendNotification(sub, payload).catch(err => console.error(err));
+        });
+
+        res.json({ success: true, announcement: newAnn });
+    } catch (error) {
+        console.error('Elan göndərilərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Elan göndərilərkən xəta baş verdi.' });
+    }
+});
+
+app.delete('/api/admin/announcements/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await AnnouncementService.deleteAnnouncement(id);
+        if (result) {
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ success: false, error: 'Elan tapılmadı.' });
+        }
+    } catch (error) {
+        console.error('Elan silinərkən xəta:', error);
+        res.status(500).json({ success: false, error: 'Elan silinərkən xəta baş verdi.' });
+    }
+});
+
+// Yeni Qeydiyyatı Başlatma Endpointi (FIN kod və Şifrə ilə)
+app.post('/api/register/initiate', async (req, res) => {
+    const { finCode, password } = req.body;
+
+    if (!finCode || !password) {
+        return res.status(400).json({ success: false, message: 'FIN Kod və şifrə tələb olunur.' });
+    }
+
+    try {
+        // FIN kod ilə istifadəçi ID-sini və digər məlumatları API-dən tapırıq
+        const finDataUrl = 'https://dbrp.onrender.com/bot_api/users/vesiqe'; // Verilərin olduğu URL
+
+        const response = await fetch(finDataUrl);
+
+        if (!response.ok) {
+            console.error(`FIN verilənləri URL-dən çəkilərkən xəta: ${response.status} ${response.statusText}`);
+            return res.status(response.status).json({ success: false, message: `Verilənlər çəkilərkən xəta: ${response.statusText}` });
+        }
+
+        const users = await response.json();
+
+        if (!Array.isArray(users)) {
+             console.error('FIN verilərlərindən gözlənilməyən format:', users);
+             return res.status(500).json({ success: false, message: 'Xarici API-dən gözlənilməyən məlumat formatı.' });
+        }
+
+        // FIN koda görə istifadəçini tapın
+        const apiUser = users.find(user => user.fin_kod && user.fin_kod.toUpperCase() === finCode.toUpperCase());
+
+        if (!apiUser) {
+             return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapılmadı.' });
+        }
+
+        // Bizim verilənlər bazamızda bu discordId ilə istifadəçi artıq qeydiyyatdan keçibmi yoxla
+        const existingUser = await UpdatedConnectedUser.findOne({ where: { discordId: apiUser.id } });
+
+        if (existingUser && existingUser.password) {
+             // Əgər artıq qeydiyyatdan keçibsə və şifrəsi varsa
+             return res.status(409).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi artıq qeydiyyatdan keçib.' });
+        }
+
+        // Şifrəni həşləyin və sessiyada müvəqqəti saxlayın
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Sessiyaya qeydiyyat məlumatlarını müvəqqəti yazırıq
+        req.session.regFinCode = finCode;
+        req.session.regHashedPassword = hashedPassword;
+        req.session.regApiUser = apiUser; // API-dən gələn məlumatlar
+        
+        req.session.save((err) => {
+            if (err) {
+                console.error('Qeydiyyat başlama sessiya yadda saxlama xətası:', err);
+                return res.status(500).json({ success: false, message: 'Server xətası baş verdi.' });
+            }
+            console.log('Qeydiyyat məlumatları sessiyaya yazıldı, Discord OAuth-a yönləndirilir.');
+            // Discord OAuth2 səhifəsinə yönləndir (state parametri ilə qeydiyyat olduğunu bildiririk)
+            const params = {
+                client_id: process.env.DISCORD_CLIENT_ID,
+                response_type: 'code',
+                redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
+                scope: 'identify guilds',
+                prompt: 'consent',
+                state: 'register' // Qeydiyyat axını olduğunu bildirən state
+            };
+            const discordAuthUrl = 'https://discord.com/oauth2/authorize?' + new URLSearchParams(params).toString();
+            console.log('Yönləndirilən URL:', discordAuthUrl);
+            res.json({ success: true, redirectUrl: discordAuthUrl }); // Redirect URL-i client-ə göndəririk
+        });
+
+    } catch (error) {
+        console.error('Qeydiyyat başlama zamanı server xətası:', error);
+        // Xarici API-dən gələn xəta mesajını istifadəçiyə göstərin
+        if (error.message.includes('Verilənlər çəkilərken xəta') || error.message.includes('Xarici API-dən gözlənilməyən məlumat formatı')) {
+             res.status(500).json({ success: false, message: 'Verilənlər mənbəyi ilə əlaqə qurularkən xəta baş verdi.' });
+        } else {
+             res.status(500).json({ success: false, message: 'Qeydiyyat başlama zamanı server xətası baş verdi.' });
+        }
+    }
+});
+
+// Mövcud Qeydiyyat Endpointini dəyişdiririk (artıq Discord callback tərəfindən çağırılacaq)
+// app.post('/api/register', ...)
+
+// Discord OAuth2 callback endpointini yenilə
+app.get('/auth/discord/callback', async (req, res) => {
+    console.log('Callback: Received request to /auth/discord/callback');
+    console.log('Callback: Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
+    console.log('Callback: Raw URL:', req.url);
+    console.log('Callback: Original URL:', req.originalUrl);
+    console.log('Callback: Base URL:', req.baseUrl);
+    console.log('Callback: Path:', req.path);
+    console.log('Callback: Request details:', {
+        method: req.method,
+        url: req.originalUrl,
+        headers: req.headers,
+        query: req.query,
+        body: req.body,
+        cookies: req.cookies,
+        signedCookies: req.signedCookies
+    });
+
+    const code = req.query.code;
+    const error = req.query.error;
+    const errorDescription = req.query.error_description;
+    const state = req.query.state; // State parametrini alırıq
+
+    if (error) {
+        console.error('Callback: Discord OAuth2 error:', error, errorDescription);
+        return res.status(400).send(`
+            <html>
+                <body>
+                    <h1>Discord OAuth2 Hatası</h1>
+                    <p>Hata: ${error}</p>
+                    <p>Açıklama: ${errorDescription}</p>
+                    <p>Lütfen tekrar deneyin: <a href="/auth/discord">Discord ile Giriş Yap</a></p>
+                </body>
+            </html>
+        `);
+    }
+
+    if (!code) {
+        console.error('Callback: Discord OAuth2 kodu alınmadı.', req.query);
+        console.error('Callback: Request headers:', req.headers);
+        console.error('Callback: Request cookies:', req.cookies);
+        return res.status(400).send(`
+            <html>
+                <body>
+                    <h1>Discord OAuth2 kodu alınmadı</h1>
+                    <p>Lütfen aşağıdakileri kontrol edin:</p>
+                    <ul>
+                        <li>Discord Developer Portal'da Redirect URI'nin <code>https://dbrpbot.onrender.com/auth/discord/callback</code> olarak ayarlandığından emin olun</li>
+                        <li>Client ID ve Client Secret'ın doğru olduğundan emin olun</li>
+                        <li>Tarayıcınızın çerezlerini temizleyin ve tekrar deneyin</li>
+                    </ul>
+                    <p>Hata detayları:</p>
+                    <pre>${JSON.stringify({
+                        query: req.query,
+                        headers: req.headers,
+                        cookies: req.cookies,
+                        url: req.url,
+                        originalUrl: req.originalUrl
+                    }, null, 2)}</pre>
+                    <p>Lütfen tekrar deneyin: <a href="/auth/discord">Discord ile Giriş Yap</a></p>
+                </body>
+            </html>
+        `);
+    }
+
+    console.log('Callback: Received code.');
+    console.log('Callback: Received state:', state);
+
+    try {
+        // Token əldə et
+        console.log('Callback: Token endpointinə sorğu göndərilir...');
+        const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+            method: 'POST',
+            body: new URLSearchParams({
+                client_id: process.env.DISCORD_CLIENT_ID,
+                client_secret: process.env.DISCORD_CLIENT_SECRET,
+                code: code,
+                grant_type: 'authorization_code',
+                redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
+                scope: 'identify guilds',
+            }),
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
+
+        const tokenData = await tokenResponse.json();
+        if (tokenData.error) {
+            console.error(`Callback: Token xətası: ${tokenData.error}`);
+            throw new Error(`Token xətası: ${tokenData.error}`);
+        }
+        console.log('Callback: Token uğurla alındı.');
+
+        // İstifadəçi məlumatlarını əldə et
+        const userResponse = await fetch('https://discord.com/api/users/@me', {
+            headers: {
+                authorization: `${tokenData.token_type} ${tokenData.access_token}`,
+            },
+        });
+
+        const userData = await userResponse.json();
+        if (!userData.id) {
+            console.error('Callback: İstifadəçi məlumatları alınmadı və ya ID yoxdur.');
+            throw new Error('İstifadəçi məlumatları alına bilmədi');
+        }
+        console.log('Callback: İstifadəçi məlumatları uğurla alındı:', userData);
+
+        // Sessiyanı yenilə
+        req.session.discordId = userData.id;
+        req.session.username = userData.username; // Discord-dan gələn username
+        // Digər sessiya məlumatları da burada yenilənə bilər
+        console.log('Callback: Before session save, sessiya obyekti:', req.session);
+
+        // Sessiyanı yadda saxla
+        req.session.save(async (err) => {
+            if (err) {
+                console.error('Callback: Session save error:', err);
+                return res.status(500).send('Session yadda saxlanılarkən xəta baş verdi.');
+            }
+
+            console.log('Callback: Session SAVED successfully. Final session state:', req.session);
+
+            // Qeydiyyat axınıdırsa
+            if (state === 'register' && req.session.regFinCode && req.session.regHashedPassword && req.session.regApiUser) {
+                console.log('Callback: Qeydiyyat axını aşkar edildi.');
+                const { regFinCode, regHashedPassword, regApiUser } = req.session;
+
+                // API-dən gələn istifadəçi məlumatları ilə Discord-dan gələn ID-ni yoxla
+                if (regApiUser.id === userData.id) {
+                    console.log('Callback: API-dən gələn Discord ID ilə Discord OAuth ID uyğun gəlir.');
+                    try {
+                        // İstifadəçi artıq bizdə qeydiyyatdan keçibmi? (Discord ID-yə görə)
+                        const existingUser = await UpdatedConnectedUser.findOne({ where: { discordId: userData.id } });
+
+                        if (existingUser) {
+                             // Əgər varsa, amma şifrəsi yoxdursa (əvvəl Discord girişi edibsə), yenilə
+                             if (!existingUser.password) {
+                                 console.log('Callback: Mövcud istifadəçi tapıldı, şifrə əlavə edilir.');
+                                 existingUser.password = regHashedPassword;
+                                 // Discord-dan gələn son istifadəçi adını yeniləyə bilərik
+                                 existingUser.username = userData.username;
+                                 existingUser.is_verified = true; // Doğrulandı
+                                 await existingUser.save();
+                                 console.log('Callback: Mövcud istifadəçi uğurla yeniləndi.');
+                                 // Qeydiyyat məlumatlarını sessiyadan sil
+                                 delete req.session.regFinCode;
+                                 delete req.session.regHashedPassword;
+                                 delete req.session.regApiUser;
+                                 req.session.save(() => {
+                                     res.redirect('/dashboard.html?registered=true'); // Ana səhifəyə yönləndir
+                                 });
+                                 
+                             } else {
+                                 // Artıq həm Discord ilə, həm də şifrə ilə qeydiyyatdan keçib
+                                 console.log('Callback: İstifadəçi artıq tam qeydiyyatlıdır.');
+                                  // Qeydiyyat məlumatlarını sessiyadan sil
+                                 delete req.session.regFinCode;
+                                 delete req.session.regHashedPassword;
+                                 delete req.session.regApiUser;
+                                 req.session.save(() => {
+                                     res.redirect('/dashboard.html?already_registered=true'); // Giriş səhifəsinə yönləndir
+                                 });
+                            }
+                        } else {
+                            // Yeni istifadəçi yaradın
+                            console.log('Callback: Yeni istifadəçi yaradılır.');
+                            await UpdatedConnectedUser.create({
+                                discordId: userData.id,
+                                username: userData.username,
+                                password: regHashedPassword,
+                                is_verified: true,
+                                connectedAt: new Date()
+                            });
+                            console.log('Callback: Yeni istifadəçi uğurla yaradıldı.');
+                            // Qeydiyyat məlumatlarını sessiyadan sil
+                            delete req.session.regFinCode;
+                            delete req.session.regHashedPassword;
+                            delete req.session.regApiUser;
+                            req.session.save(() => {
+                                res.redirect('/dashboard.html?registered=true'); // Ana səhifəyə yönləndir
+                            });
+                        }
+
+                    } catch (dbError) {
+                        console.error('Callback: Qeydiyyat zamanı verilənlər bazası xətası:', dbError);
+                        // Qeydiyyat məlumatlarını sessiyadan sil
+                         delete req.session.regFinCode;
+                         delete req.session.regHashedPassword;
+                         delete req.session.regApiUser;
+                         req.session.save(() => {
+                             res.status(500).send('Qeydiyyat zamanı verilənlər bazası xətası.');
+                         });
+                    }
                 } else {
-                    window.location.href = '/login.html';
+                     // API-dən gələn Discord ID ilə Discord OAuth ID uyğun gəlmir
+                     console.error('Callback: API-dən gələn Discord ID (%s) ilə Discord OAuth ID (%s) uyğun gəlmir.', regApiUser.id, userData.id);
+                      // Qeydiyyat məlumatlarını sessiyadan sil
+                     delete req.session.regFinCode;
+                     delete req.session.regHashedPassword;
+                     delete req.session.regApiUser;
+                     req.session.save(() => {
+                          res.status(400).send('FIN kodunuzla əlaqəli Discord hesabı fərqlidir. Zəhmət olmasa, doğru Discord hesabı ilə giriş edin.');
+                     });
                 }
-            } catch (error) {
-                console.error('Profil məlumatları yüklənərkən xəta:', error);
-                window.location.href = '/login.html';
-            }
-        }
+            } else {
+                 // Normal Discord girişi axınıdır
+                 console.log('Callback: Normal Discord girişi axını aşkar edildi.');
+                 // Buradakı mövcud Discord giriş məntiqi saxlanılır
+                 // ... Buraya Discord girişi zamanı istifadəçi yaratma/yeniləmə məntiqi gələcək (əgər fərqli bir prosesdirsə) ...
+                 try {
+                     // Discord girişi zamanı istifadəçini DB-də tap və ya yarat
+                     const [user, created] = await UpdatedConnectedUser.findOrCreate({
+                          where: { discordId: userData.id },
+                          defaults: { username: userData.username, is_verified: false } // Discord girişi ilə ilkin olaraq verified deyil
+                     });
+                     console.log(`Callback: Discord girişi. İstifadəçi ${created ? 'yaradıldı' : 'tapıldı'}:`, user.discordId);
 
-        // Hesabdan çıxış
-        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            try {
-                const response = await fetch('/api/auth/logout', {
-                    method: 'POST'
-                });
-                if (response.ok) {
-                    window.location.href = '/login.html';
-                }
-            } catch (error) {
-                console.error('Hesabdan çıxış zamanı xəta:', error);
+                     // Əgər istifadəçi FIN kod ilə qeydiyyatdan keçibsə (verified == true), onu admin paneli və ya ana səhifəyə yönləndir
+                     // Əgər Discord girişi ilə gəlibsə və hələ verified deyilsə, onu FIN kod qeydiyyatı səhifəsinə yönləndirə bilərik?
+
+                     // Sadəlik üçün: Əgər normal Discord girişi edibsə və admin ID-dirsə admin panelə, yoxsa ana səhifəyə yönləndir
+                     // Qeydiyyat axını yoxdursa və Discord ID admin ID-dirsə admin panelə yönləndir
+                     if (userData.id === process.env.ADMIN_DISCORD_ID) {
+                         res.redirect('/admin.html');
+                     } else {
+                         // Normal istifadəçini ana səhifəyə yönləndir
+                         res.redirect('/');
+                     }
+
+                 } catch (dbError) {
+                     console.error('Callback: Discord girişi zamanı verilənlər bazası xətası:', dbError);
+                     res.status(500).send('Giriş zamanı verilənlər bazası xətası.');
+                 }
             }
         });
 
-        // Səhifə yükləndikdə profili yüklə
-        document.addEventListener('DOMContentLoaded', loadUserProfile);
-    </script>
-</body>
-</html>
+    } catch (error) {
+        console.error('Callback: Ümumi Discord giriş xətası:', error);
+        // Qeydiyyat məlumatlarını sessiyadan sil (xəta zamanı) - təhlükəsizlik üçün
+        delete req.session.regFinCode;
+        delete req.session.regHashedPassword;
+        delete req.session.regApiUser;
+        req.session.save(() => {
+             res.status(500).send('Giriş/Qeydiyyat zamanı xəta baş verdi.');
+        });
+    }
+});
+
+// Admin yoxlaması üçün middleware
+const isAdmin = async (req, res, next) => {
+    try {
+        console.log('-- isAdmin Middleware Start --');
+        console.log('isAdmin: Session object:', req.session);
+        console.log('isAdmin: Session ID:', req.sessionID);
+        console.log('isAdmin: Discord ID:', req.session && req.session.discordId ? req.session.discordId : 'undefined or session null');
+        console.log('isAdmin: process.env.ADMIN_DISCORD_ID:', process.env.ADMIN_DISCORD_ID);
+
+        // Sessiyanı və Discord ID-ni yoxla
+        if (!req.session || !req.session.discordId) {
+            console.log('isAdmin: Sessiya tapılmadı və ya discordId yoxdur.');
+            console.log('isAdmin: Yönləndirilir: /auth/discord');
+            console.log('-- isAdmin Middleware End (Redirecting) --');
+            return res.redirect('/auth/discord'); // Redirect if no session or no discordId
+        }
+
+        console.log('isAdmin: Sessiyada tapılan Discord ID:', req.session.discordId);
+        console.log('isAdmin: Müqayisə edilir: Session ID == ADMIN_DISCORD_ID');
+
+        // Sessiondaki Discord ID'nin .env'deki ADMIN_DISCORD_ID ile tam eşleştiğini yoxla
+        if (req.session.discordId === process.env.ADMIN_DISCORD_ID) {
+            console.log('isAdmin: Discord ID ADMIN_DISCORD_ID ilə uyğun gəlir. Admin girişi icazəlidir.');
+            console.log('-- isAdmin Middleware End (Admin Match) --');
+            return next(); // If matches, proceed
+        } else {
+            console.log('isAdmin: Discord ID ADMIN_DISCORD_ID ilə uyğun gəlmir.');
+            console.log('isAdmin: Giriş qadağandır. Status 403');
+            console.log('-- isAdmin Middleware End (No Admin Match) --');
+            // If not matches, send Forbidden
+            return res.status(403).send('Bu səhifəyə giriş icazəniz yoxdur.');
+            // res.redirect('/'); // Və ya ana səhifəyə yönləndir
+        }
+
+    } catch (error) {
+        console.error('isAdmin middleware xətası:', error);
+        console.log('-- isAdmin Middleware End (Error) --');
+        res.status(500).send('Server xətası baş verdi.');
+    }
+};
+
+// Admin səhifəsinə giriş
+app.get('/admin.html', isAdmin, (req, res) => {
+    const adminPath = path.join(__dirname, 'public', 'admin.html');
+    if (fs.existsSync(adminPath)) {
+        res.sendFile(adminPath);
+    } else {
+        res.status(404).send('admin.html tapılmadı');
+    }
+});
+
+// Admin API endpointləri
+app.use('/api/admin', isAdmin);
+
+// Admin yoxlama endpointi
+app.get('/api/admin/check', isAdmin, (req, res) => {
+    res.json({ success: true });
+});
+
+// Get all connected users
+app.get('/api/admin/connected-users', ensureAuthenticated, async (req, res) => {
+    try {
+        const users = await UpdatedConnectedUser.findAll();
+        res.json(users);
+    } catch (error) {
+        console.error('Bağlı istifadəçiləri gətirmə xətası:', error);
+        res.status(500).json({ error: 'Daxili Server Xətası' });
+    }
+});
+
+// Search connected users by Discord ID
+app.get('/api/admin/connected-users/search', ensureAuthenticated, async (req, res) => {
+    const { discordId } = req.query;
+    if (!discordId) {
+        return res.status(400).json({ error: 'Discord ID tələb olunur.' });
+    }
+
+    try {
+        const user = await UpdatedConnectedUser.findOne({
+            where: {
+                discordId: discordId
+            }
+        });
+        res.json(user ? [user] : []);
+    } catch (error) {
+        console.error(`Discord ID ${discordId} ilə istifadəçi axtarışı xətası:`, error);
+        res.status(500).json({ error: 'Daxili Server Xətası' });
+    }
+});
+
+// API endpoint to get list of servers (guilds)
+app.get('/api/servers', isAdmin, async (req, res) => {
+    console.log('[/api/servers] endpointine istek geldi.');
+
+    const pythonBotApiUrl = process.env.PYTHON_BOT_API_URL || 'http://dbrp.onready.com/bot_api/servers'; // Python bot API ünvanı
+
+    try {
+        console.log(`[/api/servers] Python bot API-sinə sorğu göndərilir: ${pythonBotApiUrl}`);
+        const response = await fetch(pythonBotApiUrl);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[/api/servers] Python bot API xətası: HTTP status ${response.status}, Detallar: ${errorText}`);
+            return res.status(response.status).json({ error: `Python bot API xətası: ${response.status}`, details: errorText });
+        }
+
+        const servers = await response.json();
+        console.log(`[/api/servers] Python bot API-dən ${servers.length} server məlumatı alındı.`);
+        res.json(servers); // Client-ə server siyahısını göndər
+
+    } catch (error) {
+        console.error('[/api/servers] Python bot API-sinə sorğu göndərilərkən xəta:', error);
+        res.status(500).json({ error: 'Server siyahısını əldə edilərkən xəta baş verdi.', details: error.message });
+    }
+});
+
+// Admin panel route
+app.get('/admin', isAdmin, (req, res) => {
+    // ... existing code ...
+});
+
+// Bot client instansını təyin etmək üçün metod
+app.setDiscordClient = (client) => {
+    app.locals.discordClient = client;
+    console.log('Discord client instance app.locals-a təyin edildi.');
+};
+
+// FIN kod ilə istifadəçi tapmaq endpointi
+app.get('/api/user/fin/:finCode', async (req, res) => {
+    const finCode = req.params.finCode.toUpperCase();
+    const finDataUrl = 'https://dbrp.onrender.com/bot_api/users/vesiqe'; // Verilərin olduğu URL
+
+    try {
+        // Bütün istifadəçi məlumatlarını URL-dən çəkin
+        const response = await fetch(finDataUrl);
+
+        if (!response.ok) {
+            console.error(`FIN verilənləri URL-dən çəkilərkən xəta: ${response.status} ${response.statusText}`);
+            return res.status(response.status).json({ success: false, message: `Verilənlər çəkilərkən xəta: ${response.statusText}` });
+        }
+
+        const users = await response.json();
+
+        if (!Array.isArray(users)) {
+             console.error('FIN verilərlərindən gözlənilməyən format:', users);
+             return res.status(500).json({ success: false, message: 'Xarici API-dən gözlənilməyən məlumat formatı.' });
+        }
+
+        // Çəkilmiş siyahıdan FIN koda görə istifadəçini tapın
+        const foundUser = users.find(user => user.fin_kod && user.fin_kod.toUpperCase() === finCode);
+
+        if (!foundUser) {
+             // API-də tapılmadı (siyahıda yoxdur)
+             return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapılmadı.' });
+        }
+
+        // Bizim verilənlər bazamızda bu discordId ilə istifadəçi var mı yoxla
+        const connectedUser = await UpdatedConnectedUser.findOne({ where: { discordId: foundUser.id } });
+
+        if (!connectedUser) {
+             // API siyahısında tapıldı, amma bizim DB-də yoxdursa, bu o deməkdir ki, saytda qeydiyyatdan keçməyib
+             return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapıldı, lakin saytda qeydiyyatdan keçməyib.' });
+        }
+
+        // Hər iki yerdə tapıldı, Discord ID-ni qaytar
+        res.json({ success: true, discordId: foundUser.id });
+
+    } catch (error) {
+        console.error('FIN kod ilə istifadəçi tapılarkən server xətası:', error);
+        res.status(500).json({ success: false, message: 'Server xətası baş verdi.' });
+    }
+});
+
+// FIN kod və Discord ID uyğunluğunu yoxlamaq endpointi (qeydiyyat üçün)
+app.post('/api/verify/fin', async (req, res) => {
+    const { finCode, discordId } = req.body;
+    const finDataUrl = 'https://dbrp.onrender.com/bot_api/users/vesiqe'; // Verilərin olduğu URL
+
+    if (!finCode || !discordId) {
+        return res.status(400).json({ success: false, message: 'FIN kod və Discord ID təmin edilməlidir.' });
+    }
+
+    try {
+        // Bütün istifadəçi məlumatlarını URL-dən çəkin
+        const response = await fetch(finDataUrl);
+
+        if (!response.ok) {
+            console.error(`FIN verilənləri URL-dən çəkilərkən xəta: ${response.status} ${response.statusText}`);
+            return res.status(response.status).json({ success: false, message: `Verilənlər çəkilərkən xəta: ${response.statusText}` });
+        }
+
+        const users = await response.json();
+        
+        if (!Array.isArray(users)) {
+             console.error('FIN verilərlərindən gözlənilməyən format:', users);
+             return res.status(500).json({ success: false, message: 'Xarici API-dən gözlənilməyən məlumat formatı.' });
+        }
+
+        // Çəkilmiş siyahıdan FIN kod və Discord ID uyğunluğunu yoxlayın
+        const isMatch = users.some(user => 
+            user.fin_kod && user.fin_kod.toUpperCase() === finCode.toUpperCase() && 
+            user.id && user.id === discordId
+        );
+
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'FIN kod və Discord ID uyğun deyil və ya tapılmadı.' });
+        }
+
+        res.json({ success: true, isValid: isMatch });
+
+    } catch (error) {
+        console.error('FIN kod doğrulama zamanı server xətası:', error);
+        res.status(500).json({ success: false, message: 'Server xətası baş verdi.' });
+    }
+});
+
+// İstifadəçi profili endpointi
+app.get('/api/user/profile', ensureAuthenticated, async (req, res) => {
+    try {
+        const response = await fetch('https://discord.com/api/users/@me', {
+            headers: {
+                authorization: `Bearer ${req.session.accessToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Discord API xətası');
+        }
+        
+        const userData = await response.json();
+        res.json(userData);
+    } catch (error) {
+        console.error('Profil məlumatları alınarkən xəta:', error);
+        res.status(500).json({ error: 'Server xətası' });
+    }
+});
+
+// Hesabdan çıxış endpointi
+app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Hesabdan çıxış zamanı xəta:', err);
+            return res.status(500).json({ error: 'Server xətası' });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ success: true });
+    });
+});
+
+app.listen(port, () => {
+    console.log(`Server ${port} portunda işləyir`);
+});
+
+module.exports = { app, sequelize, discordClient }; 
