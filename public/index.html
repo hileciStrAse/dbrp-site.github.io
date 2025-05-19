@@ -177,27 +177,28 @@
         .user-profile {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: var(--glass);
+            transition: all 0.3s ease;
             position: relative;
-            padding: 5px 10px;
-            border-radius: 20px;
-            transition: background-color 0.3s ease;
         }
 
         .user-profile:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background: rgba(0, 200, 255, 0.15);
         }
 
         .user-profile img {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            border: 2px solid var(--accent-color);
+            border: 2px solid var(--primary);
         }
 
         .username {
-            color: var(--text-color);
+            color: var(--light);
             font-weight: 500;
         }
 
@@ -210,12 +211,13 @@
             display: none;
             position: absolute;
             right: 0;
-            background-color: var(--bg-color);
-            min-width: 160px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            background: var(--glass);
+            min-width: 180px;
+            box-shadow: var(--shadow);
             border-radius: 8px;
             z-index: 1;
-            margin-top: 5px;
+            margin-top: 8px;
+            border: 1px solid var(--border);
         }
 
         .user-profile:hover .dropdown-content {
@@ -223,16 +225,23 @@
         }
 
         .dropdown-content a {
-            color: var(--text-color);
+            color: var(--light);
             padding: 12px 16px;
             text-decoration: none;
-            display: block;
-            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
         }
 
         .dropdown-content a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: var(--accent-color);
+            background: rgba(0, 200, 255, 0.15);
+            color: var(--primary);
+        }
+
+        .dropdown-content a i {
+            width: 16px;
+            text-align: center;
         }
         
         /* Dashboard Cards */
@@ -840,7 +849,7 @@
                 <span class="username" id="username"></span>
                 <div class="dropdown">
                     <div class="dropdown-content">
-                        <a href="#" id="logoutBtn">Hesabdan çıxış</a>
+                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Hesabdan çıxış</a>
                     </div>
                 </div>
             </div>
@@ -874,7 +883,7 @@
                 <span class="username" id="username"></span>
                 <div class="dropdown">
                     <div class="dropdown-content">
-                        <a href="#" id="logoutBtn">Hesabdan çıxış</a>
+                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Hesabdan çıxış</a>
                     </div>
                 </div>
             </div>
@@ -1121,23 +1130,15 @@
                 const response = await fetch('/api/user/profile');
                 if (response.ok) {
                     const userData = await response.json();
-                    // Giriş edilmiş vəziyyəti göstər
-                    document.getElementById('notLoggedIn').style.display = 'none';
-                    document.getElementById('loggedIn').style.display = 'block';
-                    
                     // Profil məlumatlarını doldur
                     document.getElementById('userAvatar').src = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`;
                     document.getElementById('username').textContent = userData.username;
                 } else {
-                    // Giriş edilməmiş vəziyyəti göstər
-                    document.getElementById('notLoggedIn').style.display = 'block';
-                    document.getElementById('loggedIn').style.display = 'none';
+                    window.location.href = '/auth/discord';
                 }
             } catch (error) {
                 console.error('Profil məlumatları yüklənərkən xəta:', error);
-                // Xəta halında giriş edilməmiş vəziyyəti göstər
-                document.getElementById('notLoggedIn').style.display = 'block';
-                document.getElementById('loggedIn').style.display = 'none';
+                window.location.href = '/auth/discord';
             }
         });
 
