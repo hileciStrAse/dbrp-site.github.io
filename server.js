@@ -14,7 +14,6 @@ const { DiscordStrategy } = require('passport-discord');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const bcrypt = require('bcrypt');
 require('dotenv').config();
-const ActivityService = require('./services/activityService');
 const { Op } = require('sequelize');
 
 // Discord bot client instance (başqa fayldan ötürüləcək)
