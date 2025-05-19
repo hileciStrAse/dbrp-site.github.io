@@ -428,57 +428,54 @@ app.post('/api/register/initiate', async (req, res) => {
 // app.post('/api/register', ...)
 
 // Discord OAuth2 callback endpointini yenilə
-app.get('/auth/discord/callback', async (req, res) => {
-    console.log('Callback: Received request to /auth/discord/callback');
-    console.log('Callback: Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
-    console.log('Callback: Raw URL:', req.url);
-    console.log('Callback: Original URL:', req.originalUrl);
-    console.log('Callback: Base URL:', req.baseUrl);
-    console.log('Callback: Path:', req.path);
-    console.log('Callback: Request details:', {
-        method: req.method,
-        url: req.originalUrl,
-        headers: req.headers,
-        query: req.query,
-        body: req.body,
-        cookies: req.cookies,
-        signedCookies: req.signedCookies
-    });
+app.get('/auth/discord', (req, res) => {
+    const params = {
+        client_id: process.env.DISCORD_CLIENT_ID,
+        response_type: 'code',
+        redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
+        scope: 'identify guilds',
+        prompt: 'consent',
+        state: req.query.state || 'login' // Qeydiyyat və ya giriş axını olduğunu bildirən state
+    };
+    const discordAuthUrl = 'https://discord.com/oauth2/authorize?' + new URLSearchParams(params).toString();
+    console.log('Yönləndirilən URL:', discordAuthUrl);
+    res.redirect(discordAuthUrl);
+});
 
+// Discord OAuth2 callback endpointi
+app.get('/auth/discord/callback', async (req, res) => {
     const code = req.query.code;
+    const state = req.query.state;
     const error = req.query.error;
     const errorDescription = req.query.error_description;
-    const state = req.query.state; // State parametrini alırıq
 
     if (error) {
-        console.error('Callback: Discord OAuth2 error:', error, errorDescription);
+        console.error('Discord OAuth2 xətası:', error, errorDescription);
         return res.status(400).send(`
             <html>
                 <body>
-                    <h1>Discord OAuth2 Hatası</h1>
-                    <p>Hata: ${error}</p>
-                    <p>Açıklama: ${errorDescription}</p>
-                    <p>Lütfen tekrar deneyin: <a href="/auth/discord/callback">Discord ile Giriş Yap</a></p>
+                    <h1>Discord OAuth2 Xətası</h1>
+                    <p>Xəta: ${error}</p>
+                    <p>Açıqlama: ${errorDescription}</p>
+                    <p>Zəhmət olmasa yenidən cəhd edin: <a href="/auth/discord">Discord ilə Giriş</a></p>
                 </body>
             </html>
         `);
     }
 
     if (!code) {
-        console.error('Callback: Discord OAuth2 kodu alınmadı.', req.query);
-        console.error('Callback: Request headers:', req.headers);
-        console.error('Callback: Request cookies:', req.cookies);
+        console.error('Discord OAuth2 kodu alınmadı:', req.query);
         return res.status(400).send(`
             <html>
                 <body>
                     <h1>Discord OAuth2 kodu alınmadı</h1>
-                    <p>Lütfen aşağıdakileri kontrol edin:</p>
+                    <p>Zəhmət olmasa aşağıdakıları yoxlayın:</p>
                     <ul>
-                        <li>Discord Developer Portal'da Redirect URI'nin <code>https://dbrpbot.onrender.com/auth/discord/callback</code> olarak ayarlandığından emin olun</li>
-                        <li>Client ID ve Client Secret'ın doğru olduğundan emin olun</li>
-                        <li>Tarayıcınızın çerezlerini temizleyin ve tekrar deneyin</li>
+                        <li>Discord Developer Portal-da Redirect URI-nin <code>https://dbrpbot.onrender.com/auth/discord/callback</code> olaraq tənzimləndiyindən əmin olun</li>
+                        <li>Client ID və Client Secret-ın düzgün olduğundan əmin olun</li>
+                        <li>Brauzerinizin çərəzlərini təmizləyin və yenidən cəhd edin</li>
                     </ul>
-                    <p>Hata detayları:</p>
+                    <p>Xəta detalları:</p>
                     <pre>${JSON.stringify({
                         query: req.query,
                         headers: req.headers,
@@ -486,18 +483,14 @@ app.get('/auth/discord/callback', async (req, res) => {
                         url: req.url,
                         originalUrl: req.originalUrl
                     }, null, 2)}</pre>
-                    <p>Lütfen tekrar deneyin: <a href="/auth/discord/callback">Discord ile Giriş Yap</a></p>
+                    <p>Zəhmət olmasa yenidən cəhd edin: <a href="/auth/discord">Discord ilə Giriş</a></p>
                 </body>
             </html>
         `);
     }
 
-    console.log('Callback: Received code.');
-    console.log('Callback: Received state:', state);
-
     try {
         // Token əldə et
-        console.log('Callback: Token endpointinə sorğu göndərilir...');
         const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
             method: 'POST',
             body: new URLSearchParams({
@@ -515,10 +508,8 @@ app.get('/auth/discord/callback', async (req, res) => {
 
         const tokenData = await tokenResponse.json();
         if (tokenData.error) {
-            console.error(`Callback: Token xətası: ${tokenData.error}`);
             throw new Error(`Token xətası: ${tokenData.error}`);
         }
-        console.log('Callback: Token uğurla alındı.');
 
         // İstifadəçi məlumatlarını əldə et
         const userResponse = await fetch('https://discord.com/api/users/@me', {
@@ -529,70 +520,38 @@ app.get('/auth/discord/callback', async (req, res) => {
 
         const userData = await userResponse.json();
         if (!userData.id) {
-            console.error('Callback: İstifadəçi məlumatları alınmadı və ya ID yoxdur.');
             throw new Error('İstifadəçi məlumatları alına bilmədi');
         }
-        console.log('Callback: İstifadəçi məlumatları uğurla alındı:', userData);
 
         // Sessiyanı yenilə
         req.session.discordId = userData.id;
-        req.session.username = userData.username; // Discord-dan gələn username
-        // Digər sessiya məlumatları da burada yenilənə bilər
-        console.log('Callback: Before session save, sessiya obyekti:', req.session);
+        req.session.username = userData.username;
+        req.session.accessToken = tokenData.access_token;
 
         // Sessiyanı yadda saxla
         req.session.save(async (err) => {
             if (err) {
-                console.error('Callback: Session save error:', err);
-                return res.status(500).send('Session yadda saxlanılarkən xəta baş verdi.');
+                return res.status(500).send('Sessiya yadda saxlanılarkən xəta baş verdi.');
             }
-
-            console.log('Callback: Session SAVED successfully. Final session state:', req.session);
 
             // Qeydiyyat axınıdırsa
             if (state === 'register' && req.session.regFinCode && req.session.regHashedPassword && req.session.regApiUser) {
-                console.log('Callback: Qeydiyyat axını aşkar edildi.');
                 const { regFinCode, regHashedPassword, regApiUser } = req.session;
 
                 // API-dən gələn istifadəçi məlumatları ilə Discord-dan gələn ID-ni yoxla
                 if (regApiUser.id === userData.id) {
-                    console.log('Callback: API-dən gələn Discord ID ilə Discord OAuth ID uyğun gəlir.');
                     try {
-                        // İstifadəçi artıq bizdə qeydiyyatdan keçibmi? (Discord ID-yə görə)
+                        // İstifadəçi artıq bizdə qeydiyyatdan keçibmi?
                         const existingUser = await UpdatedConnectedUser.findOne({ where: { discordId: userData.id } });
 
                         if (existingUser) {
-                             // Əgər varsa, amma şifrəsi yoxdursa (əvvəl Discord girişi edibsə), yenilə
-                             if (!existingUser.password) {
-                                 console.log('Callback: Mövcud istifadəçi tapıldı, şifrə əlavə edilir.');
-                                 existingUser.password = regHashedPassword;
-                                 // Discord-dan gələn son istifadəçi adını yeniləyə bilərik
-                                 existingUser.username = userData.username;
-                                 existingUser.is_verified = true; // Doğrulandı
-                                 await existingUser.save();
-                                 console.log('Callback: Mövcud istifadəçi uğurla yeniləndi.');
-                                 // Qeydiyyat məlumatlarını sessiyadan sil
-                                 delete req.session.regFinCode;
-                                 delete req.session.regHashedPassword;
-                                 delete req.session.regApiUser;
-                                 req.session.save(() => {
-                                     res.redirect('/dashboard.html?registered=true'); // Ana səhifəyə yönləndir
-                                 });
-                                 
-                             } else {
-                                 // Artıq həm Discord ilə, həm də şifrə ilə qeydiyyatdan keçib
-                                 console.log('Callback: İstifadəçi artıq tam qeydiyyatlıdır.');
-                                  // Qeydiyyat məlumatlarını sessiyadan sil
-                                 delete req.session.regFinCode;
-                                 delete req.session.regHashedPassword;
-                                 delete req.session.regApiUser;
-                                 req.session.save(() => {
-                                     res.redirect('/dashboard.html?already_registered=true'); // Giriş səhifəsinə yönləndir
-                                 });
+                            if (!existingUser.password) {
+                                existingUser.password = regHashedPassword;
+                                existingUser.username = userData.username;
+                                existingUser.is_verified = true;
+                                await existingUser.save();
                             }
                         } else {
-                            // Yeni istifadəçi yaradın
-                            console.log('Callback: Yeni istifadəçi yaradılır.');
                             await UpdatedConnectedUser.create({
                                 discordId: userData.id,
                                 username: userData.username,
@@ -600,77 +559,58 @@ app.get('/auth/discord/callback', async (req, res) => {
                                 is_verified: true,
                                 connectedAt: new Date()
                             });
-                            console.log('Callback: Yeni istifadəçi uğurla yaradıldı.');
-                            // Qeydiyyat məlumatlarını sessiyadan sil
-                            delete req.session.regFinCode;
-                            delete req.session.regHashedPassword;
-                            delete req.session.regApiUser;
-                            req.session.save(() => {
-                                res.redirect('/dashboard.html?registered=true'); // Ana səhifəyə yönləndir
-                            });
                         }
 
-                    } catch (dbError) {
-                        console.error('Callback: Qeydiyyat zamanı verilənlər bazası xətası:', dbError);
                         // Qeydiyyat məlumatlarını sessiyadan sil
-                         delete req.session.regFinCode;
-                         delete req.session.regHashedPassword;
-                         delete req.session.regApiUser;
-                         req.session.save(() => {
-                             res.status(500).send('Qeydiyyat zamanı verilənlər bazası xətası.');
-                         });
+                        delete req.session.regFinCode;
+                        delete req.session.regHashedPassword;
+                        delete req.session.regApiUser;
+                        req.session.save(() => {
+                            res.redirect('/dashboard.html?registered=true');
+                        });
+                    } catch (dbError) {
+                        console.error('Qeydiyyat zamanı verilənlər bazası xətası:', dbError);
+                        delete req.session.regFinCode;
+                        delete req.session.regHashedPassword;
+                        delete req.session.regApiUser;
+                        req.session.save(() => {
+                            res.status(500).send('Qeydiyyat zamanı verilənlər bazası xətası.');
+                        });
                     }
                 } else {
-                     // API-dən gələn Discord ID ilə Discord OAuth ID uyğun gəlmir
-                     console.error('Callback: API-dən gələn Discord ID (%s) ilə Discord OAuth ID (%s) uyğun gəlmir.', regApiUser.id, userData.id);
-                      // Qeydiyyat məlumatlarını sessiyadan sil
-                     delete req.session.regFinCode;
-                     delete req.session.regHashedPassword;
-                     delete req.session.regApiUser;
-                     req.session.save(() => {
-                          res.status(400).send('FIN kodunuzla əlaqəli Discord hesabı fərqlidir. Zəhmət olmasa, doğru Discord hesabı ilə giriş edin.');
-                     });
+                    delete req.session.regFinCode;
+                    delete req.session.regHashedPassword;
+                    delete req.session.regApiUser;
+                    req.session.save(() => {
+                        res.status(400).send('FIN kodunuzla əlaqəli Discord hesabı fərqlidir. Zəhmət olmasa, doğru Discord hesabı ilə giriş edin.');
+                    });
                 }
             } else {
-                 // Normal Discord girişi axınıdır
-                 console.log('Callback: Normal Discord girişi axını aşkar edildi.');
-                 // Buradakı mövcud Discord giriş məntiqi saxlanılır
-                 // ... Buraya Discord girişi zamanı istifadəçi yaratma/yeniləmə məntiqi gələcək (əgər fərqli bir prosesdirsə) ...
-                 try {
-                     // Discord girişi zamanı istifadəçini DB-də tap və ya yarat
-                     const [user, created] = await UpdatedConnectedUser.findOrCreate({
-                          where: { discordId: userData.id },
-                          defaults: { username: userData.username, is_verified: false } // Discord girişi ilə ilkin olaraq verified deyil
-                     });
-                     console.log(`Callback: Discord girişi. İstifadəçi ${created ? 'yaradıldı' : 'tapıldı'}:`, user.discordId);
+                // Normal Discord girişi
+                try {
+                    const [user, created] = await UpdatedConnectedUser.findOrCreate({
+                        where: { discordId: userData.id },
+                        defaults: { username: userData.username, is_verified: false }
+                    });
 
-                     // Əgər istifadəçi FIN kod ilə qeydiyyatdan keçibsə (verified == true), onu admin paneli və ya ana səhifəyə yönləndir
-                     // Əgər Discord girişi ilə gəlibsə və hələ verified deyilsə, onu FIN kod qeydiyyatı səhifəsinə yönləndirə bilərik?
-
-                     // Sadəlik üçün: Əgər normal Discord girişi edibsə və admin ID-dirsə admin panelə, yoxsa ana səhifəyə yönləndir
-                     // Qeydiyyat axını yoxdursa və Discord ID admin ID-dirsə admin panelə yönləndir
-                     if (userData.id === process.env.ADMIN_DISCORD_ID) {
-                         res.redirect('/admin.html');
-                     } else {
-                         // Normal istifadəçini ana səhifəyə yönləndir
-                         res.redirect('/');
-                     }
-
-                 } catch (dbError) {
-                     console.error('Callback: Discord girişi zamanı verilənlər bazası xətası:', dbError);
-                     res.status(500).send('Giriş zamanı verilənlər bazası xətası.');
-                 }
+                    if (userData.id === process.env.ADMIN_DISCORD_ID) {
+                        res.redirect('/admin.html');
+                    } else {
+                        res.redirect('/dashboard.html');
+                    }
+                } catch (dbError) {
+                    console.error('Discord girişi zamanı verilənlər bazası xətası:', dbError);
+                    res.status(500).send('Giriş zamanı verilənlər bazası xətası.');
+                }
             }
         });
-
     } catch (error) {
-        console.error('Callback: Ümumi Discord giriş xətası:', error);
-        // Qeydiyyat məlumatlarını sessiyadan sil (xəta zamanı) - təhlükəsizlik üçün
+        console.error('Discord giriş xətası:', error);
         delete req.session.regFinCode;
         delete req.session.regHashedPassword;
         delete req.session.regApiUser;
         req.session.save(() => {
-             res.status(500).send('Giriş/Qeydiyyat zamanı xəta baş verdi.');
+            res.status(500).send('Giriş/Qeydiyyat zamanı xəta baş verdi.');
         });
     }
 });
@@ -687,9 +627,9 @@ const isAdmin = async (req, res, next) => {
         // Sessiyanı və Discord ID-ni yoxla
         if (!req.session || !req.session.discordId) {
             console.log('isAdmin: Sessiya tapılmadı və ya discordId yoxdur.');
-            console.log('isAdmin: Yönləndirilir: /auth/discord/callback');
+            console.log('isAdmin: Yönləndirilir: /auth/discord');
             console.log('-- isAdmin Middleware End (Redirecting) --');
-            return res.redirect('/auth/discord/callback'); // Redirect if no session or no discordId
+            return res.redirect('/auth/discord'); // Redirect if no session or no discordId
         }
 
         console.log('isAdmin: Sessiyada tapılan Discord ID:', req.session.discordId);
@@ -706,9 +646,7 @@ const isAdmin = async (req, res, next) => {
             console.log('-- isAdmin Middleware End (No Admin Match) --');
             // If not matches, send Forbidden
             return res.status(403).send('Bu səhifəyə giriş icazəniz yoxdur.');
-            // res.redirect('/'); // Və ya ana səhifəyə yönləndir
         }
-
     } catch (error) {
         console.error('isAdmin middleware xətası:', error);
         console.log('-- isAdmin Middleware End (Error) --');
