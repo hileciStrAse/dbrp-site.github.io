@@ -250,10 +250,6 @@
                        placeholder="Məsələn: 7XZ1234">
             </div>
             <div class="form-group">
-                <label for="discordId">Discord ID:</label>
-                <input type="text" id="discordId" name="discordId" required>
-            </div>
-            <div class="form-group">
                 <label for="password">Şifrə:</label>
                 <input type="password" id="password" name="password" required>
             </div>
@@ -268,42 +264,18 @@
             event.preventDefault();
 
             const finCode = document.getElementById('finCode').value;
-            const discordId = document.getElementById('discordId').value;
             const password = document.getElementById('password').value;
             const messageElement = document.getElementById('message');
 
             messageElement.textContent = '';
 
             try {
-                // İlk öncə FIN kod ilə istifadəçi məlumatlarını yoxlayırıq
-                const verifyResponse = await fetch('/api/verify/fin', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        finCode: finCode,
-                        discordId: discordId
-                    })
-                });
-
-                if (!verifyResponse.ok) {
-                    throw new Error('FIN kod və Discord ID uyğunluğu yoxlanıla bilmədi');
-                }
-
-                const verifyData = await verifyResponse.json();
-                if (!verifyData.isValid) {
-                    throw new Error('FIN kod və Discord ID uyğun deyil');
-                }
-
-                // Qeydiyyat prosesini həyata keçiririk
                 const registerResponse = await fetch('/api/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
-                        discordId: discordId,
                         finCode: finCode,
                         password: password 
                     })
