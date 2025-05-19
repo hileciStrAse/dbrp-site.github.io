@@ -344,106 +344,90 @@ app.delete('/api/admin/announcements/:id', async (req, res) => {
     }
 });
 
-// Yeni Qeydiyyat Endpointi
-app.post('/api/register', async (req, res) => {
-    const { discordId, username, password } = req.body;
+// Yeni Qeydiyyatı Başlatma Endpointi (FIN kod və Şifrə ilə)
+app.post('/api/register/initiate', async (req, res) => {
+    const { finCode, password } = req.body;
 
-    if (!discordId || !username || !password) {
-        return res.status(400).json({ success: false, message: 'Discord ID, istifadəçi adı və şifrə tələb olunur.' });
+    if (!finCode || !password) {
+        return res.status(400).json({ success: false, message: 'FIN Kod və şifrə tələb olunur.' });
     }
 
     try {
-        // İstifadəçi artıq mövcuddurmu yoxla
-        const existingUser = await UpdatedConnectedUser.findOne({ where: { discordId: discordId } });
-        if (existingUser) {
-            // Əgər mövcuddursa və artıq şifrəsi varsa
-            if (existingUser.password) {
-                 return res.status(409).json({ success: false, message: 'Bu Discord ID artıq qeydiyyatdan keçib.' });
-            } else {
-                 // Əgər mövcuddursa, amma şifrəsi yoxdursa (Discord girişi ilə gəlibsə)
-                 // Şifrəsini yenilə
-                 const hashedPassword = await bcrypt.hash(password, 10);
-                 existingUser.username = username; // Adı da yeniləyə bilərik
-                 existingUser.password = hashedPassword;
-                 // Doğrulama statusunu burada true etmirik, ayrıca doğrulama addımı olacaq.
-                 await existingUser.save();
-                 return res.status(200).json({ success: true, message: 'Hesabınız yeniləndi, şifrə təyin edildi.' });
-            }
+        // FIN kod ilə istifadəçi ID-sini və digər məlumatları API-dən tapırıq
+        const finDataUrl = 'https://dbrp.onrender.com/bot_api/users/vesiqe'; // Verilərin olduğu URL
+
+        const response = await fetch(finDataUrl);
+
+        if (!response.ok) {
+            console.error(`FIN verilənləri URL-dən çəkilərkən xəta: ${response.status} ${response.statusText}`);
+            return res.status(response.status).json({ success: false, message: `Verilənlər çəkilərkən xəta: ${response.statusText}` });
         }
 
-        // Yeni istifadəçi yarat
+        const users = await response.json();
+
+        if (!Array.isArray(users)) {
+             console.error('FIN verilərlərindən gözlənilməyən format:', users);
+             return res.status(500).json({ success: false, message: 'Xarici API-dən gözlənilməyən məlumat formatı.' });
+        }
+
+        // FIN koda görə istifadəçini tapın
+        const apiUser = users.find(user => user.fin_kod && user.fin_kod.toUpperCase() === finCode.toUpperCase());
+
+        if (!apiUser) {
+             return res.status(404).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi tapılmadı.' });
+        }
+
+        // Bizim verilənlər bazamızda bu discordId ilə istifadəçi artıq qeydiyyatdan keçibmi yoxla
+        const existingUser = await UpdatedConnectedUser.findOne({ where: { discordId: apiUser.id } });
+
+        if (existingUser && existingUser.password) {
+             // Əgər artıq qeydiyyatdan keçibsə və şifrəsi varsa
+             return res.status(409).json({ success: false, message: 'Bu FIN kod ilə bağlı istifadəçi artıq qeydiyyatdan keçib.' });
+        }
+
+        // Şifrəni həşləyin və sessiyada müvəqqəti saxlayın
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await UpdatedConnectedUser.create({
-            discordId: discordId,
-            username: username,
-            password: hashedPassword,
-            is_verified: false, // Qeydiyyatdan sonra doğrulama tələb olunur
+        
+        // Sessiyaya qeydiyyat məlumatlarını müvəqqəti yazırıq
+        req.session.regFinCode = finCode;
+        req.session.regHashedPassword = hashedPassword;
+        req.session.regApiUser = apiUser; // API-dən gələn məlumatlar
+        
+        req.session.save((err) => {
+            if (err) {
+                console.error('Qeydiyyat başlama sessiya yadda saxlama xətası:', err);
+                return res.status(500).json({ success: false, message: 'Server xətası baş verdi.' });
+            }
+            console.log('Qeydiyyat məlumatları sessiyaya yazıldı, Discord OAuth-a yönləndirilir.');
+            // Discord OAuth2 səhifəsinə yönləndir (state parametri ilə qeydiyyat olduğunu bildiririk)
+            const params = {
+                client_id: process.env.DISCORD_CLIENT_ID,
+                response_type: 'code',
+                redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
+                scope: 'identify guilds',
+                prompt: 'consent',
+                state: 'register' // Qeydiyyat axını olduğunu bildirən state
+            };
+            const discordAuthUrl = 'https://discord.com/oauth2/authorize?' + new URLSearchParams(params).toString();
+            console.log('Yönləndirilən URL:', discordAuthUrl);
+            res.json({ success: true, redirectUrl: discordAuthUrl }); // Redirect URL-i client-ə göndəririk
         });
 
-        res.status(201).json({ success: true, message: 'Qeydiyyat uğurlu oldu. Zəhmət olmasa hesabınızı doğrulayın.' });
-
     } catch (error) {
-        console.error('Qeydiyyat zamanı xəta:', error);
-        res.status(500).json({ success: false, message: 'Qeydiyyat zamanı server xətası baş verdi.' });
+        console.error('Qeydiyyat başlama zamanı server xətası:', error);
+        // Xarici API-dən gələn xəta mesajını istifadəçiyə göstərin
+        if (error.message.includes('Verilənlər çəkilərken xəta') || error.message.includes('Xarici API-dən gözlənilməyən məlumat formatı')) {
+             res.status(500).json({ success: false, message: 'Verilənlər mənbəyi ilə əlaqə qurularkən xəta baş verdi.' });
+        } else {
+             res.status(500).json({ success: false, message: 'Qeydiyyat başlama zamanı server xətası baş verdi.' });
+        }
     }
 });
 
-// Yeni Giriş Endpointi
-app.post('/api/login', async (req, res) => {
-    const { discordId, password } = req.body;
+// Mövcud Qeydiyyat Endpointini dəyişdiririk (artıq Discord callback tərəfindən çağırılacaq)
+// app.post('/api/register', ...)
 
-    if (!discordId || !password) {
-        return res.status(400).json({ success: false, message: 'Discord ID və şifrə tələb olunur.' });
-    }
-
-    try {
-        // İstifadəçini Discord ID-yə görə tap
-        const user = await UpdatedConnectedUser.findOne({ where: { discordId: discordId } });
-
-        if (!user) {
-            return res.status(401).json({ success: false, message: 'İstifadəçi tapılmadı.' });
-        }
-
-        // Şifrəni yoxla
-        const passwordMatch = await bcrypt.compare(password, user.password || ''); // user.password null ola bilər
-
-        if (!passwordMatch) {
-            return res.status(401).json({ success: false, message: 'Şifrə yanlışdır.' });
-        }
-
-        // Hesabın doğrulanıb olmadığını yoxla
-        if (!user.is_verified) {
-            return res.status(401).json({ success: false, message: 'Hesabınız doğrulanmayıb. Zəhmət olmasa, hesabınızı doğrulayın.' });
-        }
-
-        // Giriş uğurlu oldu (hələlik sessiyaya yazmırıq)
-        // Sessiya idarəetməsi növbəti addımda əlavə olunacaq
-        console.log(`İstifadəçi ${user.username} (${user.discordId}) uğurla giriş etdi.`);
-        res.json({ success: true, message: 'Giriş uğurlu oldu.', user: { id: user.discordId, username: user.username } });
-
-    } catch (error) {
-        console.error('Giriş zamanı xəta:', error);
-        res.status(500).json({ success: false, message: 'Giriş zamanı server xətası baş verdi.' });
-    }
-});
-
-// Discord OAuth2 endpoint'ləri
-app.get('/auth/discord', (req, res) => {
-    console.log('/auth/discord: Redirecting to Discord OAuth with full callback URI');
-    const params = {
-        client_id: process.env.DISCORD_CLIENT_ID,
-        response_type: 'code',
-        redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
-        scope: 'identify guilds',
-        prompt: 'consent'
-    };
-    console.log('OAuth2 Parameters:', params);
-    const discordAuthUrl = 'https://discord.com/oauth2/authorize?' + new URLSearchParams(params).toString();
-    console.log('Generated Discord Auth URL:', discordAuthUrl);
-    res.redirect(discordAuthUrl);
-});
-
-// Discord OAuth2 callback
+// Discord OAuth2 callback endpointini yenilə
 app.get('/auth/discord/callback', async (req, res) => {
     console.log('Callback: Received request to /auth/discord/callback');
     console.log('Callback: Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
@@ -464,6 +448,7 @@ app.get('/auth/discord/callback', async (req, res) => {
     const code = req.query.code;
     const error = req.query.error;
     const errorDescription = req.query.error_description;
+    const state = req.query.state; // State parametrini alırıq
 
     if (error) {
         console.error('Callback: Discord OAuth2 error:', error, errorDescription);
@@ -508,6 +493,7 @@ app.get('/auth/discord/callback', async (req, res) => {
     }
 
     console.log('Callback: Received code.');
+    console.log('Callback: Received state:', state);
 
     try {
         // Token əldə et
@@ -520,7 +506,7 @@ app.get('/auth/discord/callback', async (req, res) => {
                 code: code,
                 grant_type: 'authorization_code',
                 redirect_uri: 'https://dbrpbot.onrender.com/auth/discord/callback',
-                scope: 'identify guilds', // Scope-u boşluqla ayırırıq
+                scope: 'identify guilds',
             }),
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -550,10 +536,11 @@ app.get('/auth/discord/callback', async (req, res) => {
 
         // Sessiyanı yenilə
         req.session.discordId = userData.id;
-        req.session.username = userData.username;
+        req.session.username = userData.username; // Discord-dan gələn username
+        // Digər sessiya məlumatları da burada yenilənə bilər
         console.log('Callback: Before session save, sessiya obyekti:', req.session);
 
-        // Sessiyanı yadda saxla və yalnız yadda saxlandıqdan sonra davam et
+        // Sessiyanı yadda saxla
         req.session.save(async (err) => {
             if (err) {
                 console.error('Callback: Session save error:', err);
@@ -561,39 +548,124 @@ app.get('/auth/discord/callback', async (req, res) => {
             }
 
             console.log('Callback: Session SAVED successfully. Final session state:', req.session);
-            console.log('Callback: Preparing for database operations and redirect...');
-            
-            // ConnectedUser cədvəlinə əlavə et
-            try {
-                 await UpdatedConnectedUser.findOrCreate({
-                     where: { discordId: userData.id },
-                     defaults: { username: userData.username }
-                 });
-                 console.log('Callback: ConnectedUser findOrCreate successful.');
 
-                 // Admin yoxlaması
-                 if (userData.id === process.env.ADMIN_DISCORD_ID) {
-                     await Admin.findOrCreate({
-                         where: { discordId: userData.id }
+            // Qeydiyyat axınıdırsa
+            if (state === 'register' && req.session.regFinCode && req.session.regHashedPassword && req.session.regApiUser) {
+                console.log('Callback: Qeydiyyat axını aşkar edildi.');
+                const { regFinCode, regHashedPassword, regApiUser } = req.session;
+
+                // API-dən gələn istifadəçi məlumatları ilə Discord-dan gələn ID-ni yoxla
+                if (regApiUser.id === userData.id) {
+                    console.log('Callback: API-dən gələn Discord ID ilə Discord OAuth ID uyğun gəlir.');
+                    try {
+                        // İstifadəçi artıq bizdə qeydiyyatdan keçibmi? (Discord ID-yə görə)
+                        const existingUser = await UpdatedConnectedUser.findOne({ where: { discordId: userData.id } });
+
+                        if (existingUser) {
+                             // Əgər varsa, amma şifrəsi yoxdursa (əvvəl Discord girişi edibsə), yenilə
+                             if (!existingUser.password) {
+                                 console.log('Callback: Mövcud istifadəçi tapıldı, şifrə əlavə edilir.');
+                                 existingUser.password = regHashedPassword;
+                                 // Discord-dan gələn son istifadəçi adını yeniləyə bilərik
+                                 existingUser.username = userData.username;
+                                 existingUser.is_verified = true; // Doğrulandı
+                                 await existingUser.save();
+                                 console.log('Callback: Mövcud istifadəçi uğurla yeniləndi.');
+                                 // Qeydiyyat məlumatlarını sessiyadan sil
+                                 delete req.session.regFinCode;
+                                 delete req.session.regHashedPassword;
+                                 delete req.session.regApiUser;
+                                 req.session.save(() => {
+                                     res.redirect('/login.html?registered=true'); // Giriş səhifəsinə yönləndir
+                                 });
+                                 
+                             } else {
+                                 // Artıq həm Discord ilə, həm də şifrə ilə qeydiyyatdan keçib
+                                 console.log('Callback: İstifadəçi artıq tam qeydiyyatlıdır.');
+                                  // Qeydiyyat məlumatlarını sessiyadan sil
+                                 delete req.session.regFinCode;
+                                 delete req.session.regHashedPassword;
+                                 delete req.session.regApiUser;
+                                 req.session.save(() => {
+                                     res.redirect('/login.html?already_registered=true'); // Giriş səhifəsinə yönləndir
+                                 });
+                             }
+                        } else {
+                            // Yeni istifadəçi yaradın
+                            console.log('Callback: Yeni istifadəçi yaradılır.');
+                            await UpdatedConnectedUser.create({
+                                discordId: userData.id,
+                                username: userData.username, // Discord-dan gələn username
+                                password: regHashedPassword,
+                                is_verified: true, // Doğrulandı
+                                connectedAt: new Date()
+                            });
+                            console.log('Callback: Yeni istifadəçi uğurla yaradıldı.');
+                            // Qeydiyyat məlumatlarını sessiyadan sil
+                            delete req.session.regFinCode;
+                            delete req.session.regHashedPassword;
+                            delete req.session.regApiUser;
+                            req.session.save(() => {
+                                res.redirect('/login.html?registered=true'); // Giriş səhifəsinə yönləndir
+                            });
+                        }
+
+                    } catch (dbError) {
+                        console.error('Callback: Qeydiyyat zamanı verilənlər bazası xətası:', dbError);
+                        // Qeydiyyat məlumatlarını sessiyadan sil
+                         delete req.session.regFinCode;
+                         delete req.session.regHashedPassword;
+                         delete req.session.regApiUser;
+                         req.session.save(() => {
+                             res.status(500).send('Qeydiyyat zamanı verilənlər bazası xətası.');
+                         });
+                    }
+                } else {
+                     // API-dən gələn Discord ID ilə Discord OAuth ID uyğun gəlmir
+                     console.error('Callback: API-dən gələn Discord ID (%s) ilə Discord OAuth ID (%s) uyğun gəlmir.', regApiUser.id, userData.id);
+                      // Qeydiyyat məlumatlarını sessiyadan sil
+                     delete req.session.regFinCode;
+                     delete req.session.regHashedPassword;
+                     delete req.session.regApiUser;
+                     req.session.save(() => {
+                          res.status(400).send('FIN kodunuzla əlaqəli Discord hesabı fərqlidir. Zəhmət olmasa, doğru Discord hesabı ilə giriş edin.');
                      });
-                     console.log('Callback: Admin girişi uğurlu.');
-                 } else {
-                     console.log('Callback: Normal istifadəçi girişi.');
+                }
+            } else {
+                 // Normal Discord girişi axınıdır
+                 console.log('Callback: Normal Discord girişi axını aşkar edildi.');
+                 // Buradakı mövcud Discord giriş məntiqi saxlanılır
+                 // ... Buraya Discord girişi zamanı istifadəçi yaratma/yeniləmə məntiqi gələcək (əgər fərqli bir prosesdirsə) ...
+                 try {
+                     // Discord girişi zamanı istifadəçini DB-də tap və ya yarat
+                     const [user, created] = await UpdatedConnectedUser.findOrCreate({
+                          where: { discordId: userData.id },
+                          defaults: { username: userData.username, is_verified: false } // Discord girişi ilə ilkin olaraq verified deyil
+                     });
+                     console.log(`Callback: Discord girişi. İstifadəçi ${created ? 'yaradıldı' : 'tapıldı'}:`, user.discordId);
+
+                     // Əgər istifadəçi FIN kod ilə qeydiyyatdan keçibsə (verified == true), onu admin paneli və ya ana səhifəyə yönləndir
+                     // Əgər Discord girişi ilə gəlibsə və hələ verified deyilsə, onu FIN kod qeydiyyatı səhifəsinə yönləndirə bilərik?
+
+                     // Sadəlik üçün: Əgər admin ID-dirsə admin panelə, yoxsa ana səhifəyə
+                     res.redirect(userData.id === process.env.ADMIN_DISCORD_ID ? '/admin.html' : '/');
+
+                 } catch (dbError) {
+                     console.error('Callback: Discord girişi zamanı verilənlər bazası xətası:', dbError);
+                     res.status(500).send('Giriş zamanı verilənlər bazası xətası.');
                  }
-
-                 // Yönləndirməni session.save callback'in sonuna köçürürük
-                 console.log('Callback: Redirecting to final destination...');
-                 res.redirect(userData.id === process.env.ADMIN_DISCORD_ID ? '/admin.html' : '/');
-
-            } catch (dbError) {
-                console.error('Callback: Database operation error after session save:', dbError);
-                return res.status(500).send('Verilənlər bazası əməliyyatı zamanı xəta.');
             }
         });
 
     } catch (error) {
         console.error('Callback: Ümumi Discord giriş xətası:', error);
-        res.status(500).send('Giriş xətası baş verdi.');
+        // Qeydiyyat məlumatlarını sessiyadan sil (xəta zamanı) - təhlükəsizlik üçün
+        delete req.session.regFinCode;
+        delete req.session.regHashedPassword;
+        delete req.session.regApiUser;
+        req.session.save(() => {
+             res.status(500).send('Giriş/Qeydiyyat zamanı xəta baş verdi.');
+        });
     }
 });
 
