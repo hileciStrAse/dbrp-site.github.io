@@ -268,35 +268,42 @@
             const messageElement = document.getElementById('message');
 
             messageElement.textContent = '';
+            messageElement.style.color = ''; // Mesaj rəngini sıfırlayırıq
 
             try {
-                const registerResponse = await fetch('/api/register', {
+                // Qeydiyyatı başlatma endpointinə sorğu göndəririk
+                const response = await fetch('/api/register/initiate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ 
-                        finCode: finCode,
-                        password: password 
-                    })
+                    body: JSON.stringify({ finCode, password })
                 });
 
-                const data = await registerResponse.json();
+                const data = await response.json();
 
-                if (registerResponse.ok) {
-                    messageElement.textContent = 'Qeydiyyat uğurludur. İndi daxil ola bilərsiniz.';
-                    messageElement.style.color = '#10b981';
-                    setTimeout(() => {
-                        window.location.href = '/login.html';
-                    }, 2000);
+                if (response.ok) {
+                    // Əgər server 200 OK cavabı qaytarırsa (Redirect URL ilə)
+                    messageElement.textContent = 'FIN kod yoxlandı. Discord hesabınızı bağlamaq üçün yönləndirilirsiniz...';
+                    messageElement.style.color = '#10b981'; // Yaşıl rəng
+                    // Serverdən gələn redirect URL-ə yönləndiririk
+                    if (data.redirectUrl) {
+                         window.location.href = data.redirectUrl;
+                    } else {
+                         // Redirect URL gəlməyibsə, xəta kimi göstəririk
+                         messageElement.textContent = data.message || 'Serverdən yönləndirmə ünvanı gəlmədi.';
+                         messageElement.style.color = '#ef4444'; // Qırmızı rəng
+                     }
+
                 } else {
-                    messageElement.textContent = data.message || 'Qeydiyyat xətası baş verdi.';
-                    messageElement.style.color = '#ef4444';
+                    // Server xəta cavabı qaytarırsa (məsələn, 400, 404, 409, 500)
+                    messageElement.textContent = data.message || 'Qeydiyyat başlama zamanı xəta baş verdi.';
+                    messageElement.style.color = '#ef4444'; // Qırmızı rəng
                 }
             } catch (error) {
-                console.error('Qeydiyyat xətası:', error);
-                messageElement.textContent = error.message;
-                messageElement.style.color = '#ef4444';
+                console.error('Qeydiyyat başlama sorğusu xətası:', error);
+                messageElement.textContent = 'Server ilə əlaqə qurarkən xəta baş verdi.';
+                messageElement.style.color = '#ef4444'; // Qırmızı rəng
             }
         });
 
