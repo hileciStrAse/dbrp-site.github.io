@@ -458,7 +458,7 @@ app.get('/auth/discord/callback', async (req, res) => {
                     <h1>Discord OAuth2 Hatası</h1>
                     <p>Hata: ${error}</p>
                     <p>Açıklama: ${errorDescription}</p>
-                    <p>Lütfen tekrar deneyin: <a href="/auth/discord">Discord ile Giriş Yap</a></p>
+                    <p>Lütfen tekrar deneyin: <a href="/auth/discord/callback">Discord ile Giriş Yap</a></p>
                 </body>
             </html>
         `);
@@ -486,7 +486,7 @@ app.get('/auth/discord/callback', async (req, res) => {
                         url: req.url,
                         originalUrl: req.originalUrl
                     }, null, 2)}</pre>
-                    <p>Lütfen tekrar deneyin: <a href="/auth/discord">Discord ile Giriş Yap</a></p>
+                    <p>Lütfen tekrar deneyin: <a href="/auth/discord/callback">Discord ile Giriş Yap</a></p>
                 </body>
             </html>
         `);
@@ -687,9 +687,9 @@ const isAdmin = async (req, res, next) => {
         // Sessiyanı və Discord ID-ni yoxla
         if (!req.session || !req.session.discordId) {
             console.log('isAdmin: Sessiya tapılmadı və ya discordId yoxdur.');
-            console.log('isAdmin: Yönləndirilir: /auth/discord');
+            console.log('isAdmin: Yönləndirilir: /auth/discord/callback');
             console.log('-- isAdmin Middleware End (Redirecting) --');
-            return res.redirect('/auth/discord'); // Redirect if no session or no discordId
+            return res.redirect('/auth/discord/callback'); // Redirect if no session or no discordId
         }
 
         console.log('isAdmin: Sessiyada tapılan Discord ID:', req.session.discordId);
