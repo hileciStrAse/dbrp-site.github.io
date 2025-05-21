@@ -484,7 +484,16 @@ async function checkAndSeedCommands() {
 // Server başlatma funksiyası
 async function startServer() {
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            tls: true,
+            tlsAllowInvalidCertificates: true
+        }).then(() => {
+            console.log('MongoDB-yə uğurla qoşuldu');
+        }).catch(err => {
+            console.error('MongoDB qoşulma xətası:', err);
+        });
         console.log('MongoDB-yə uğurla qoşuldu');
         
         // checkAndSeedCommands funksiyasını MongoDB bağlantısından sonra çağırın
