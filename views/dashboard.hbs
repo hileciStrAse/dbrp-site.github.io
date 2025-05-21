@@ -10,9 +10,13 @@
         <div class="relative">
             <select id="server-select" class="block w-full bg-gray-700/50 border border-gray-600 text-white py-3 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-gray-700 focus:border-orange-500 appearance-none shadow-md hover:border-orange-400 transition duration-200">
                 <option value="" disabled selected>Server seçin...</option>
-                <option value="server1">Server 1 (Misal)</option>
-                <option value="server2">Server 2 (Misal)</option>
-                <option value="server3">Başqa bir Server (Misal)</option>
+                {{#if guilds}}
+                    {{#each guilds}}
+                        <option value="{{this.id}}">{{this.name}}</option>
+                    {{/each}}
+                {{else}}
+                    <option value="" disabled>İdarə edə biləcəyiniz server tapılmadı.</option>
+                {{/if}}
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -40,9 +44,7 @@
 
     manageServerBtn.addEventListener('click', function() {
         if (serverSelect.value) {
-            // Burada seçilmiş server ilə bağlı əməliyyatlar yerinə yetiriləcək
-            // Məsələn: window.location.href = '/dashboard/' + serverSelect.value;
-            alert('Seçilmiş server: ' + serverSelect.options[serverSelect.selectedIndex].text);
+            window.location.href = '/dashboard/manage/' + serverSelect.value;
         } else {
             alert('Zəhmət olmasa bir server seçin.');
         }
