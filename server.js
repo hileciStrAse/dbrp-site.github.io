@@ -32,6 +32,9 @@ app.engine('hbs', exphbs.engine({
         },
         firstChar: function (str) {
             return str && str.length > 0 ? str.charAt(0).toUpperCase() : '';
+        },
+        and: function (v1, v2) {
+            return v1 && v2;
         }
     }
 }));
