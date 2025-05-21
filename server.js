@@ -8,6 +8,7 @@ const DiscordStrategy = require('passport-discord').Strategy;
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 const MongoStore = require('connect-mongo');
+const flash = require('connect-flash'); // connect-flash əlavə edildi
 const User = require('./models/User'); // User modelini içe aktardık
 
 const app = express();
@@ -21,6 +22,9 @@ app.engine('hbs', exphbs.engine({
     helpers: {
         eq: function (v1, v2) {
             return v1 === v2;
+        },
+        firstChar: function (str) {
+            return str && str.length > 0 ? str.charAt(0).toUpperCase() : '';
         }
     }
 }));
@@ -30,6 +34,9 @@ app.set('view engine', 'hbs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// connect-flash middleware
+app.use(flash());
 
 // Session konfiqurasiyası
 app.use(session({
@@ -44,6 +51,13 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Global variables for flash messages
+app.use((req, res, next) => {
+    res.locals.success_msg = req.flash('success_msg');
+    res.locals.error_msg = req.flash('error_msg');
+    res.locals.error = req.flash('error'); // passport tərəfindən istifadə olunan xəta mesajları üçün
+    next();
+});
 
 // Discord OAuth2 strategiyası
 passport.use(new DiscordStrategy({
@@ -185,9 +199,45 @@ app.get('/auth/discord/callback',
 );
 
 app.get('/dashboard', checkAuth, (req, res) => {
+    // İstifadəçinin admin olduğu serverləri filtrləyək (permissions check)
+    const manageableGuilds = req.user.guilds.filter(guild => {
+        // Discord API-də 'permissions' sahəsi onluq dəyərdir.
+        // Administrator icazəsi 0x8 bitidir.
+        // Ətraflı: https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags
+        const isAdmin = (parseInt(guild.permissions) & 0x8) === 0x8;
+        return isAdmin;
+    });
+
     res.render('dashboard', {
         title: 'İdarə Paneli',
-        user: req.user
+        user: req.user,
+        guilds: manageableGuilds // Yalnız idarə edilə bilən serverləri göndəririk
+    });
+});
+
+// Server idarəetmə səhifəsi üçün marşrut
+app.get('/dashboard/manage/:guildId', checkAuth, (req, res) => {
+    const guildId = req.params.guildId;
+    const guild = req.user.guilds.find(g => g.id === guildId);
+
+    if (!guild) {
+        // Əgər server tapılmasa və ya istifadəçinin bu serverə icazəsi yoxdursa
+        // (checkAuth middleware bunu qismən yoxlayır, amma əlavə yoxlama da edilə bilər)
+        req.flash('error_msg', 'Server tapılmadı və ya idarə etməyə icazəniz yoxdur.');
+        return res.redirect('/dashboard');
+    }
+
+    // Yoxlayaq görək istifadəçi həqiqətən bu serverin adminidirmi
+    const isAdmin = (parseInt(guild.permissions) & 0x8) === 0x8;
+    if (!isAdmin) {
+        req.flash('error_msg', 'Bu serveri idarə etmək üçün admin olmalısınız.');
+        return res.redirect('/dashboard');
+    }
+
+    res.render('manage-server', {
+        title: `${guild.name} - İdarəetmə`,
+        user: req.user,
+        guild: guild
     });
 });
 
