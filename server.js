@@ -8,6 +8,7 @@ const DiscordStrategy = require('passport-discord').Strategy;
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 const MongoStore = require('connect-mongo');
+const User = require('./models/User'); // User modelini içe aktardık
 
 const app = express();
 
