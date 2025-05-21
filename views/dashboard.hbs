@@ -47,22 +47,31 @@
 </div>
 
 <script>
-    const serverSelect = document.getElementById('server-select');
+    const serverCards = document.querySelectorAll('.server-card');
     const manageServerBtn = document.getElementById('manage-server-btn');
+    let selectedServerId = null;
 
-    serverSelect.addEventListener('change', function() {
-        if (this.value) {
+    serverCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove selection from other cards
+            serverCards.forEach(c => {
+                c.classList.remove('border-orange-500', 'ring-2', 'ring-orange-500');
+                c.classList.add('border-white/10');
+            });
+
+            // Select current card
+            this.classList.remove('border-white/10');
+            this.classList.add('border-orange-500', 'ring-2', 'ring-orange-500');
+            selectedServerId = this.dataset.id;
+            
             manageServerBtn.disabled = false;
             manageServerBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
-        } else {
-            manageServerBtn.disabled = true;
-            manageServerBtn.classList.add('disabled:opacity-50', 'disabled:cursor-not-allowed');
-        }
+        });
     });
 
     manageServerBtn.addEventListener('click', function() {
-        if (serverSelect.value) {
-            window.location.href = '/dashboard/manage/' + serverSelect.value;
+        if (selectedServerId) {
+            window.location.href = '/dashboard/manage/' + selectedServerId;
         } else {
             alert('Zəhmət olmasa bir server seçin.');
         }
