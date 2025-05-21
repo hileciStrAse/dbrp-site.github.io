@@ -33,11 +33,11 @@
     <form method="POST" action="/dashboard/manage/{{guild.id}}/settings" class="mt-10">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Statistika Kanalı Seçimi -->
-        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition duration-300">
+        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition-all duration-300 hover:border-orange-500 hover:shadow-lg group">
             <h2 class="text-xl font-semibold text-orange-400 mb-3">Statistika Kanalı Seçimi</h2>
             <p class="text-gray-400 mb-4">Statistikaların göndəriləcəyi kanalı seçin.</p>
             <!-- Yenilənmiş Kanal Seçim Elementi -->
-            <div class="bg-gradient-to-br from-gray-800/40 to-gray-900/50 border border-white/10 rounded-xl p-6 shadow-xl transition-all duration-300 hover:border-orange-400 group">
+            <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition-all duration-300 hover:border-orange-500 hover:shadow-lg group">
                 <div class="flex items-center mb-3 space-x-2">
                     <i class="fas fa-chart-line text-orange-400 text-xl"></i>
                     <h2 class="text-xl font-semibold text-orange-400">Statistika Kanalı</h2>
@@ -55,7 +55,7 @@
         </div>
 
         <!-- Maaş Bildirim Kanalı (optional) -->
-        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition duration-300">
+        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition-all duration-300 hover:border-orange-500 hover:shadow-lg group">
             <h2 class="text-xl font-semibold text-orange-400 mb-3">Maaş Bildirim Kanalı (optional)</h2>
             <p class="text-gray-400 mb-4">Maaş bildirimlərinin göndəriləcəyi kanalı seçin (istəyə bağlı).</p>
             <select name="salaryChannelId" class="w-full bg-gray-700/50 border-2 border-gray-600/50 text-white py-3 px-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition-all duration-200">
@@ -68,7 +68,7 @@
         </div>
 
         <!-- Prezident Rolu Seçimi -->
-        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition duration-300">
+        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition-all duration-300 hover:border-orange-500 hover:shadow-lg group">
             <h2 class="text-xl font-semibold text-orange-400 mb-3">Prezident Rolu Seçimi</h2>
             <p class="text-gray-400 mb-4">Serverdə prezident rolunu seçin.</p>
             <select name="presidentRoleId" class="w-full bg-gray-700/50 border-2 border-gray-600/50 text-white py-3 px-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition-all duration-200">
