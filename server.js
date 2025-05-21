@@ -7,6 +7,7 @@ const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const MongoStore = require('connect-mongo');
 
 const app = express();
 
@@ -31,15 +32,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session konfiqurasiyası
 app.use(session({
-    secret: 'discord-bot-secret',
+    secret: process.env.SESSION_SECRET || 'discord-bot-secret',
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: { maxAge: 60000 * 60 * 24 } // 24 saat
 }));
 
 // Passport konfiqurasiyası
 app.use(passport.initialize());
 app.use(passport.session());
+
 
 // Discord OAuth2 strategiyası
 passport.use(new DiscordStrategy({
@@ -49,9 +52,24 @@ passport.use(new DiscordStrategy({
         ? process.env.DISCORD_REDIRECT_URI 
         : process.env.LOCAL_REDIRECT_URI || 'http://localhost:3000/auth/discord/callback',
     scope: ['identify', 'guilds']
-}, function(accessToken, refreshToken, profile, done) {
-    // İstifadəçi məlumatlarını session-da saxla
-    return done(null, profile);
+}, async function(accessToken, refreshToken, profile, done) {
+    try {
+        let user = await User.findOneAndUpdate(
+            { discordId: profile.id },
+            {
+                username: profile.username,
+                discriminator: profile.discriminator,
+                avatar: profile.avatar,
+                guilds: profile.guilds,
+                lastLogin: Date.now()
+            },
+            { upsert: true, new: true }
+        );
+        return done(null, user);
+    } catch (err) {
+        console.error('Error in passport strategy:', err);
+        return done(err);
+    }
 }));
 
 // Serialization
