@@ -90,11 +90,16 @@ passport.use(new DiscordStrategy({
 
 // Serialization
 passport.serializeUser(function(user, done) {
-    done(null, user);
+    done(null, user.discordId); // İstifadəçinin yalnız discordId-sini saxlayırıq
 });
 
-passport.deserializeUser(function(obj, done) {
-    done(null, obj);
+passport.deserializeUser(async function(id, done) {
+    try {
+        const user = await User.findOne({ discordId: id });
+        done(null, user); // Verilənlər bazasından tam istifadəçi məlumatını alırıq
+    } catch (err) {
+        done(err, null);
+    }
 });
 
 // Discord OAuth2 routeları
