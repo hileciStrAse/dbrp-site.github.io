@@ -12,8 +12,24 @@
                 <a href="/commands" class="text-gray-300 hover:text-orange-500 transition duration-300">Əmrlər</a>
                 <a href="/contact" class="text-gray-300 hover:text-orange-500 transition duration-300">Əlaqə</a>
                 {{#if user}}
-                    <a href="/dashboard" class="text-gray-300 hover:text-orange-500 transition duration-300">İdarə Paneli</a>
-                    <a href="/logout" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition duration-300">Çıxış</a>
+                    <div class="flex items-center space-x-3">
+                        <a href="/dashboard" class="flex items-center space-x-2 text-gray-300 hover:text-orange-500 transition duration-300 group">
+                            {{#if user.avatar}}
+                            <img src="{{user.avatar}}" alt="{{user.username}}" class="w-8 h-8 rounded-full border-2 border-transparent group-hover:border-orange-500 transition-colors">
+                            {{else}}
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-orange-400 border-2 border-transparent group-hover:border-orange-500 transition-colors">
+                                {{#if user.username}}
+                                    {{firstChar user.username}}
+                                {{else}}
+                                    U
+                                {{/if}}
+                            </div>
+                            {{/if}}
+                            <span class="font-medium">{{user.username}}</span>
+                        </a>
+                        <a href="/dashboard" class="text-gray-300 hover:text-orange-500 transition duration-300 px-3 py-1.5 rounded-md hover:bg-gray-700/50 text-sm">İdarə Paneli</a>
+                        <a href="/logout" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md transition duration-300 text-sm font-medium">Çıxış</a>
+                    </div>
                 {{else}}
                     <div class="relative group w-fit">
                         <div class="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-yellow-400 rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-300 animate-pulse-slow"></div>
@@ -33,27 +49,35 @@
         
         <div id="mobile-menu" class="md:hidden hidden">
             <div class="px-2 pt-2 pb-4 space-y-1 sm:px-3">
-                <a href="/" class="block px-3 py-2 text-gray-300 hover:text-orange-500 transition duration-300">Ana Səhifə</a>
-                <a href="/commands" class="block px-3 py-2 text-gray-300 hover:text-orange-500 transition duration-300">Əmrlər</a>
-                <a href="/contact" class="block px-3 py-2 text-gray-300 hover:text-orange-500 transition duration-300">Əlaqə</a>
+                <a href="/" class="block px-3 py-2 text-gray-300 hover:text-orange-500 hover:bg-gray-700/50 rounded-md transition duration-300">Ana Səhifə</a>
+                <a href="/commands" class="block px-3 py-2 text-gray-300 hover:text-orange-500 hover:bg-gray-700/50 rounded-md transition duration-300">Əmrlər</a>
+                <a href="/contact" class="block px-3 py-2 text-gray-300 hover:text-orange-500 hover:bg-gray-700/50 rounded-md transition duration-300">Əlaqə</a>
                 {{#if user}}
-                    <a href="/dashboard" class="block px-3 py-2 text-gray-300 hover:text-orange-500 transition duration-300">İdarə Paneli</a>
-                    {{#if user}}
-                        <div class="flex items-center space-x-4">
-                            <img src="{{user.avatar}}" alt="Avatar" class="w-8 h-8 rounded-full">
-                            <span class="text-white">{{user.username}}#{{user.discriminator}}</span>
-                            <a href="/logout" class="block px-3 py-2 text-gray-300 hover:bg-red-700 bg-red-600 text-white rounded-md transition duration-300">Çıxış</a>
-                        </div>
-                    {{else}}
-                        <div class="relative group">
-                            <div class="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-yellow-400 rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-300 animate-pulse-slow"></div>
-                            <a href="/login" class="relative block px-3 py-2 hover:bg-orange-700 bg-orange-600 text-white rounded-md transition duration-300">Giriş</a>
-                        </div>
-                    {{/if}}
+                    <div class="py-2 border-t border-b border-gray-700 my-2">
+                        <a href="/dashboard" class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-700/50 group">
+                            {{#if user.avatar}}
+                            <img src="{{user.avatar}}" alt="{{user.username}}" class="w-10 h-10 rounded-full border-2 border-transparent group-hover:border-orange-500 transition-colors">
+                            {{else}}
+                            <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-orange-400 text-xl font-semibold border-2 border-transparent group-hover:border-orange-500 transition-colors">
+                                {{#if user.username}}
+                                    {{firstChar user.username}}
+                                {{else}}
+                                    U
+                                {{/if}}
+                            </div>
+                            {{/if}}
+                            <div>
+                                <span class="text-white font-semibold block">{{user.username}}</span>
+                                <span class="text-gray-400 text-xs">#{{user.discriminator}}</span>
+                            </div>
+                        </a>
+                    </div>
+                    <a href="/dashboard" class="block px-3 py-2 text-gray-300 hover:text-orange-500 hover:bg-gray-700/50 rounded-md transition duration-300">İdarə Paneli</a>
+                    <a href="/logout" class="block px-3 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md transition duration-300 mt-2 text-center font-medium">Çıxış</a>
                 {{else}}
-                    <div class="relative group">
+                    <div class="relative group mt-2">
                         <div class="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-yellow-400 rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-300 animate-pulse-slow"></div>
-                        <a href="/login" class="relative block px-3 py-2 hover:bg-orange-700 bg-orange-600 text-white rounded-md transition duration-300">Giriş</a>
+                        <a href="/login" class="relative block w-full px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md transition duration-300 text-center font-medium">Giriş</a>
                     </div>
                 {{/if}}
             </div>
