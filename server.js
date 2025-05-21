@@ -81,7 +81,7 @@ passport.use(new DiscordStrategy({
     callbackURL: process.env.NODE_ENV === 'production' 
         ? process.env.DISCORD_REDIRECT_URI 
         : process.env.LOCAL_REDIRECT_URI || 'http://localhost:3000/auth/discord/callback',
-    scope: ['identify', 'guilds']
+    scope: ['identify', 'guilds', 'guilds.channels.read', 'guilds.members.read', 'email']
 }, async function(accessToken, refreshToken, profile, done) {
     try {
         let user = await User.findOneAndUpdate(
