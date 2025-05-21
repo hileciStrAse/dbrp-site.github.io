@@ -43,7 +43,7 @@
                     <option value="{{this.id}}">#{{this.name}}</option>
                 {{/each}}
             </select>
-            <button class="w-full bg-gradient-to-r from-orange-500 to-yellow-400 hover:from-orange-600 hover:to-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition duration-300">
+            <button id="save-settings-btn" class="w-full bg-gradient-to-r from-orange-500 to-yellow-400 hover:from-orange-600 hover:to-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed" disabled>
                 Yadda Saxla
             </button>
         </div>
@@ -68,3 +68,23 @@
         <a href="/dashboard" class="text-orange-400 hover:text-orange-300 transition duration-300">&larr; İdarə Panelinə Qayıt</a>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selects = document.querySelectorAll('select');
+        const saveBtn = document.getElementById('save-settings-btn');
+        let initialValues = Array.from(selects).map(s => s.value);
+        selects.forEach(select => {
+            select.addEventListener('change', function() {
+                let changed = Array.from(selects).some((s, i) => s.value !== initialValues[i]);
+                if (changed) {
+                    saveBtn.disabled = false;
+                    saveBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                } else {
+                    saveBtn.disabled = true;
+                    saveBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                }
+            });
+        });
+    });
+</script>
