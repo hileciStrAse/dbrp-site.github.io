@@ -1,0 +1,62 @@
+<div class="space-y-8">
+    <div class="bg-gray-800/30 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-lg">
+        <div class="flex items-center mb-6">
+            {{#if guild.icon}}
+                <img src="https://cdn.discordapp.com/icons/{{guild.id}}/{{guild.icon}}.png?size=128" alt="{{guild.name}} icon" class="w-16 h-16 rounded-lg mr-4">
+            {{else}}
+                <div class="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center text-orange-400 text-3xl font-bold mr-4">
+                    {{firstChar guild.name}}
+                </div>
+            {{/if}}
+            <div>
+                <h1 class="text-3xl font-bold text-orange-500">{{guild.name}}</h1>
+                <p class="text-gray-400">Server ID: {{guild.id}}</p>
+            </div>
+        </div>
+        <p class="text-gray-300">Bu server üçün ayarları buradan idarə edə bilərsiniz.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Nümunə Ayar Kartı 1 -->
+        <div class="bg-gray-800/30 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-lg transform hover:scale-105 transition duration-300 hover:shadow-orange-500/20 card-3d">
+            <h2 class="text-xl font-semibold text-orange-400 mb-3">Prefix Ayarı</h2>
+            <p class="text-gray-400 mb-4">Botun serverdə istifadə edəcəyi əmr prefixini dəyişdirin.</p>
+            <input type="text" placeholder="Məsələn: !" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3">
+            <button class="w-full bg-gradient-to-r from-orange-500 to-yellow-400 hover:from-orange-600 hover:to-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition duration-300">
+                Yadda Saxla
+            </button>
+        </div>
+
+        <!-- Nümunə Ayar Kartı 2 -->
+        <div class="bg-gray-800/30 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-lg transform hover:scale-105 transition duration-300 hover:shadow-orange-500/20 card-3d">
+            <h2 class="text-xl font-semibold text-orange-400 mb-3">Xoş Gəldin Mesajı</h2>
+            <p class="text-gray-400 mb-4">Yeni üzvlər üçün xoş gəldin mesajını aktivləşdirin və tənzimləyin.</p>
+            <label class="flex items-center space-x-2 mb-3 cursor-pointer">
+                <input type="checkbox" class="form-checkbox h-5 w-5 text-orange-500 bg-gray-700 border-gray-600 rounded focus:ring-orange-500">
+                <span class="text-gray-300">Aktiv et</span>
+            </label>
+            <textarea placeholder="Xoş gəldin mesajınız..." rows="3" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3"></textarea>
+            <button class="w-full bg-gradient-to-r from-orange-500 to-yellow-400 hover:from-orange-600 hover:to-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition duration-300">
+                Yadda Saxla
+            </button>
+        </div>
+
+        <!-- Nümunə Ayar Kartı 3 -->
+        <div class="bg-gray-800/30 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-lg transform hover:scale-105 transition duration-300 hover:shadow-orange-500/20 card-3d">
+            <h2 class="text-xl font-semibold text-orange-400 mb-3">Log Kanalı</h2>
+            <p class="text-gray-400 mb-4">Serverdə baş verən hadisələrin qeyd olunacağı log kanalını seçin.</p>
+            <select class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none">
+                <option value="" disabled selected>Kanal seçin...</option>
+                <option value="log-channel-1">#logs</option>
+                <option value="log-channel-2">#moderator-logs</option>
+            </select>
+            <button class="w-full bg-gradient-to-r from-orange-500 to-yellow-400 hover:from-orange-600 hover:to-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition duration-300">
+                Yadda Saxla
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-8 text-center">
+        <a href="/dashboard" class="text-orange-400 hover:text-orange-300 transition duration-300">&larr; İdarə Panelinə Qayıt</a>
+    </div>
+</div>
