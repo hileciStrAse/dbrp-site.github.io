@@ -52,28 +52,13 @@
                 </select>
             </div>
             
-            <!-- Yenilənmiş Rol Seçim Kartı -->
-            <div class="bg-gradient-to-br from-gray-800/40 to-gray-900/50 border border-white/10 rounded-xl p-6 shadow-xl transition-all duration-300 hover:border-orange-400 group">
-                <div class="flex items-center mb-3 space-x-2">
-                    <i class="fas fa-user-shield text-orange-400 text-xl"></i>
-                    <h2 class="text-xl font-semibold text-orange-400">Prezident Rolu</h2>
-                </div>
-                <select name="presidentRoleId" class="w-full bg-gray-700/50 border-2 border-gray-600/50 text-white py-3 px-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition-all duration-200">
-                    <option value="" disabled {{#unless ../settings.presidentRoleId}}selected{{/unless}}>Rol seçin...</option>
-                    {{#each roles}}
-                        <option value="{{this.id}}" class="bg-gray-800 text-white" {{#if (eq this.id ../settings.presidentRoleId)}}selected{{/if}}>
-                            @{{this.name}}
-                        </option>
-                    {{/each}}
-                </select>
-            </div>
         </div>
 
         <!-- Maaş Bildirim Kanalı (optional) -->
         <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition duration-300">
             <h2 class="text-xl font-semibold text-orange-400 mb-3">Maaş Bildirim Kanalı (optional)</h2>
             <p class="text-gray-400 mb-4">Maaş bildirimlərinin göndəriləcəyi kanalı seçin (istəyə bağlı).</p>
-            <select name="salaryChannelId" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none focus:bg-white focus:text-gray-900">
+            <select name="salaryChannelId" class="w-full bg-gray-700/50 border-2 border-gray-600/50 text-white py-3 px-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition-all duration-200">
                 <option value="" disabled {{#if (and (ne ../settings.salaryChannelId "disable") (not ../settings.salaryChannelId))}}selected{{/if}}>Kanal seçin...</option>
                 <option value="disable" {{#if (eq "disable" ../settings.salaryChannelId)}}selected{{/if}}>Deaktiv Et</option>
                 {{#each channels}}
@@ -86,7 +71,7 @@
         <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition duration-300">
             <h2 class="text-xl font-semibold text-orange-400 mb-3">Prezident Rolu Seçimi</h2>
             <p class="text-gray-400 mb-4">Serverdə prezident rolunu seçin.</p>
-            <select name="presidentRoleId" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none focus:bg-white focus:text-gray-900">
+            <select name="presidentRoleId" class="w-full bg-gray-700/50 border-2 border-gray-600/50 text-white py-3 px-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition-all duration-200">
                 <option value="" disabled {{#unless ../settings.presidentRoleId}}selected{{/unless}}>Rol seçin...</option>
                 {{#each roles}}
                     <option value="{{this.id}}" {{#if (eq this.id ../settings.presidentRoleId)}}selected{{/if}}>@{{this.name}}</option>
