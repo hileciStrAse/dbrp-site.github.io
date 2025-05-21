@@ -10,6 +10,7 @@ require('dotenv').config();
 const MongoStore = require('connect-mongo');
 const flash = require('connect-flash'); // connect-flash əlavə edildi
 const User = require('./models/User'); // User modelini içe aktardık
+const GuildConfig = require('./models/GuildConfig'); // GuildConfig modelini içə aktardıq
 
 const app = express();
 
@@ -222,65 +223,121 @@ app.get('/dashboard', checkAuth, (req, res) => {
 });
 
 // Server idarəetmə səhifəsi üçün marşrut
-app.get('/dashboard/manage/:guildId', checkAuth, (req, res) => {
-    const guildId = req.params.guildId;
-    const guild = req.user.guilds.find(g => g.id === guildId);
+app.get('/dashboard/manage/:guildId', checkAuth, async (req, res) => {
+    const { guildId } = req.params;
+    if (!req.user || !req.user.guilds) {
+        req.flash('error_msg', 'Giriş etməmisiniz və ya server məlumatları əlçatan deyil.');
+        return res.redirect('/login');
+    }
+    const guild = req.user.guilds.find(g => g.id === guildId && (g.permissions & 0x8)); // Check for MANAGE_GUILD permission
 
     if (!guild) {
+        req.flash('error_msg', 'Bu serveri idarə etmək üçün icazəniz yoxdur və ya server tapılmadı.');
+        return res.redirect('/dashboard');
+    }
+
+    try {
+        // Fetch channels and roles from Discord API (simulated for now, replace with actual API calls)
+        // In a real application, you would use a library like discord.js or fetch directly
+        // For demonstration, we'll use placeholder data. You need to implement actual fetching.
+        const channels = [
+            // Example: { id: '123', name: 'general' }, { id: '456', name: 'announcements' }
+            // This should be populated by fetching channels for the specific guildId
+        ];
+        const roles = [
+            // Example: { id: '789', name: 'Admin' }, { id: '012', name: 'Moderator' }
+            // This should be populated by fetching roles for the specific guildId
+        ];
+
+        let guildConfig = await GuildConfig.findOne({ guildId });
+        if (!guildConfig) {
+            // If no config exists, create a default one or pass null/empty values
+            guildConfig = {
+                statsChannelId: null,
+                salaryChannelId: null,
+                presidentRoleId: null
+            }; 
+            // Optionally, save a new default config: 
+            // guildConfig = new GuildConfig({ guildId });
+            // await guildConfig.save();
+        }
+
+        // Simulate fetching channels and roles if not available from bot instance
+        // This is a placeholder. In a real bot, you'd fetch this from the Discord API via your bot client.
+        // For example, using discord.js: client.guilds.cache.get(guildId).channels.cache and client.guilds.cache.get(guildId).roles.cache
+        const fetchedChannels = req.user.guilds_details && req.user.guilds_details[guildId] 
+            ? req.user.guilds_details[guildId].channels.filter(ch => ch.type === 0 || ch.type === 5) // Text and Announcement channels
+            : []; 
+        const fetchedRoles = req.user.guilds_details && req.user.guilds_details[guildId]
+            ? req.user.guilds_details[guildId].roles.filter(r => !r.managed && r.name !== '@everyone') // Exclude managed roles and @everyone
+            : [];
+
         // Əgər server tapılmasa və ya istifadəçinin bu serverə icazəsi yoxdursa
         // (checkAuth middleware bunu qismən yoxlayır, amma əlavə yoxlama da edilə bilər)
-        req.flash('error_msg', 'Server tapılmadı və ya idarə etməyə icazəniz yoxdur.');
+        if (!guild) {
+            req.flash('error_msg', 'Server tapılmadı və ya idarə etməyə icazəniz yoxdur.');
+            return res.redirect('/dashboard');
+        }
+
+        // Yoxlayaq görək istifadəçi həqiqətən bu serverin adminidirmi
+        const isAdmin = (parseInt(guild.permissions) & 0x8) === 0x8;
+        if (!isAdmin) {
+            req.flash('error_msg', 'Bu serveri idarə etmək üçün admin olmalısınız.');
+            return res.redirect('/dashboard');
+        }
+
+        res.render('manage-server', {
+            title: `Manage ${guild.name}`,
+            user: req.user,
+            guild: guild,
+            channels: fetchedChannels, // Pass fetched channels
+            roles: fetchedRoles,       // Pass fetched roles
+            settings: guildConfig,     // Pass current settings
+            success_msg: req.flash('success_msg'),
+            error_msg: req.flash('error_msg')
+        });
+    } catch (error) {
+        console.error('Error fetching guild management data:', error);
+        req.flash('error_msg', 'Server ayarlarını yükləyərkən xəta baş verdi.');
+        res.redirect('/dashboard');
+    }
+});
+
+// Route to save/update guild settings
+app.post('/dashboard/manage/:guildId/settings', checkAuth, async (req, res) => {
+    const { guildId } = req.params;
+    const { statsChannelId, salaryChannelId, presidentRoleId } = req.body;
+
+    if (!req.user || !req.user.guilds) {
+        req.flash('error_msg', 'Giriş etməmisiniz.');
+        return res.redirect('/login');
+    }
+
+    const guild = req.user.guilds.find(g => g.id === guildId && (g.permissions & 0x8));
+    if (!guild) {
+        req.flash('error_msg', 'Bu serveri idarə etmək üçün icazəniz yoxdur.');
         return res.redirect('/dashboard');
     }
 
-    // Yoxlayaq görək istifadəçi həqiqətən bu serverin adminidirmi
-    const isAdmin = (parseInt(guild.permissions) & 0x8) === 0x8;
-    if (!isAdmin) {
-        req.flash('error_msg', 'Bu serveri idarə etmək üçün admin olmalısınız.');
-        return res.redirect('/dashboard');
+    try {
+        await GuildConfig.findOneAndUpdate(
+            { guildId: guildId },
+            {
+                statsChannelId: statsChannelId || null,
+                salaryChannelId: salaryChannelId === 'disable' ? 'disable' : (salaryChannelId || null),
+                presidentRoleId: presidentRoleId || null
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        req.flash('success_msg', 'Ayarlar uğurla yadda saxlanıldı!');
+    } catch (error) {
+        console.error('Error saving guild settings:', error);
+        req.flash('error_msg', 'Ayarları yadda saxlayarkən xəta baş verdi.');
     }
-
-    res.render('manage-server', {
-        title: `${guild.name} - İdarəetmə`,
-        user: req.user,
-        guild: guild
-    });
+    res.redirect(`/dashboard/manage/${guildId}`);
 });
 
-app.get('/contact', (req, res) => {
-    res.render('contact', {
-        title: 'Əlaqə',
-        user: req.user
-    });
-});
-
-app.get('/terms', (req, res) => {
-    res.render('terms', {
-        title: 'İstifadə Şərtləri',
-        user: req.user
-    });
-});
-
-app.get('/privacy', (req, res) => {
-    res.render('privacy', {
-        title: 'Məxfilik Siyasəti',
-        user: req.user
-    });
-});
-
-app.post('/contact', async (req, res) => {
-    const { name, email, message } = req.body;
-    
-    // Burada nodemailer ilə mail göndərmə əlavə edilə bilər
-    // Sadəlik üçün simulyasiya edirik
-    
-    res.render('contact', {
-        title: 'Əlaqə',
-        user: req.user,
-        success: 'Mesajınız uğurla göndərildi!'
-    });
-});
-
+// Logout route
 app.get('/logout', (req, res) => {
     req.logout(function(err) {
         if (err) { return next(err); }
