@@ -1,0 +1,133 @@
+<div class="relative z-10 py-12 px-4 sm:px-6 lg:px-8 bg-gray-900 min-h-screen">
+    <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-400">
+                Bot Əmrləri
+            </h1>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                DBRP Botun bütün əmrlərinin siyahısı. Axtarış və filtrasiya ilə lazım olan əmri asanlıqla tapın.
+            </p>
+            <p class="text-md text-orange-400 mt-2">
+                Yüklənmiş əmrlərin sayı: {{commands.length}} | Kateqoriyalar: {{categories.length}}
+            </p>
+        </div>
+        
+        <div class="mb-8">
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                <div class="flex-1">
+                    <input type="text" id="command-search" placeholder="Əmr axtar..." class="w-full px-4 py-2 bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div>
+                    <select id="category-filter" class="px-4 py-2 bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="all">Bütün kateqoriyalar</option>
+                        {{#each categories}}
+                            <option value="{{this}}">{{this}}</option>
+                        {{/each}}
+                    </select>
+                </div>
+                <div>
+                    <select id="permission-filter" class="px-4 py-2 bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="all">Bütün icazələr</option>
+                        <option value="Hamı">Hamı</option>
+                        <option value="Sahib">Sahib</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Prezident/Sahib">Prezident/Sahib</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="commands-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {{#each commands}}
+                    <div class="command-card bg-gray-800/40 backdrop-blur-xl border border-white/10 rounded-lg p-6 shadow-lg transform hover:scale-105 transition duration-300 hover:shadow-orange-500/20 card-3d" 
+                         data-category="{{this.category}}" 
+                         data-permission="{{this.permissions}}">
+                        <div class="flex justify-between items-start mb-2">
+                            <h2 class="text-xl font-bold text-orange-500">!{{this.name}}</h2>
+                            <span class="text-xs px-2 py-1 rounded-full {{#if (eq this.permissions 'Sahib')}}bg-red-500/30 text-red-200{{else if (eq this.permissions 'Admin')}}bg-purple-500/30 text-purple-200{{else if (eq this.permissions 'Prezident/Sahib')}}bg-blue-500/30 text-blue-200{{else}}bg-green-500/30 text-green-200{{/if}}">
+                                {{this.permissions}}
+                            </span>
+                        </div>
+                        <p class="text-gray-300 mb-4">{{this.description}}</p>
+                        <div class="text-sm text-gray-400">
+                            <p><strong>İstifadə:</strong> {{this.usage}}</p>
+                            <p><strong>Kateqoriya:</strong> {{this.category}}</p>
+                        </div>
+                    </div>
+                {{/each}}
+            </div>
+            
+            <div id="no-results" class="hidden text-center py-8 text-gray-400">
+                Axtarışınıza uyğun əmr tapılmadı.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('command-search');
+    const categoryFilter = document.getElementById('category-filter');
+    const permissionFilter = document.getElementById('permission-filter');
+    const commandCards = document.querySelectorAll('.command-card');
+    const noResults = document.getElementById('no-results');
+    
+    function filterCommands() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const category = categoryFilter.value;
+        const permission = permissionFilter.value;
+        
+        let visibleCount = 0;
+        
+        commandCards.forEach(card => {
+            const cardName = card.querySelector('h2').textContent.toLowerCase();
+            const cardDescription = card.querySelector('p').textContent.toLowerCase();
+            const cardCategory = card.dataset.category;
+            const cardPermission = card.dataset.permission;
+            
+            const matchesSearch = cardName.includes(searchTerm) || cardDescription.includes(searchTerm);
+            const matchesCategory = category === 'all' || cardCategory === category;
+            const matchesPermission = permission === 'all' || cardPermission === permission;
+            
+            if (matchesSearch && matchesCategory && matchesPermission) {
+                card.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+        
+        if (visibleCount === 0) {
+            noResults.classList.remove('hidden');
+        } else {
+            noResults.classList.add('hidden');
+        }
+    }
+    
+    searchInput.addEventListener('input', filterCommands);
+    categoryFilter.addEventListener('change', filterCommands);
+    permissionFilter.addEventListener('change', filterCommands);
+    
+    // 3D kart effekti
+    commandCards.forEach(card => {
+        card.addEventListener('mousemove', function(e) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = (y - centerY) / 15;
+            const rotateY = (centerX - x) / 15;
+            
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+            card.style.boxShadow = `0 15px 35px rgba(0, 0, 0, 0.2), ${(x - centerX) / 25}px ${(y - centerY) / 25}px 20px rgba(255, 128, 0, 0.1)`;
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+            card.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.1)';
+        });
+    });
+});
+</script>
