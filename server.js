@@ -29,6 +29,7 @@ app.engine('hbs', exphbs.engine({
     }
 }));
 app.set('view engine', 'hbs');
+app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
