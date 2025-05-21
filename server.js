@@ -637,3 +637,14 @@ async function startServer() {
 }
 
 startServer(); // Serveri başlat
+app.get('/terms', (req, res) => {
+    res.render('terms', {
+        title: 'İstifadə Şərtləri'
+    });
+});
+
+app.get('/privacy', (req, res) => {
+    res.render('privacy', {
+        title: 'Məxfilik Siyasəti'
+    });
+});
