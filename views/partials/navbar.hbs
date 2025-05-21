@@ -17,7 +17,7 @@
                             {{#if user.avatar}}
                             <img src="https://cdn.discordapp.com/avatars/{{user.discordId}}/{{user.avatar}}.png?size=32" alt="{{user.username}}" class="w-8 h-8 rounded-full border-2 border-orange-400 group-hover:border-yellow-400 transition-colors shadow-lg">
                             {{else}}
-                            <img src="{{user.avatar}}" alt="{{user.username}}" class="w-8 h-8 rounded-full border-2 border-orange-400 group-hover:border-yellow-400 transition-colors shadow-lg">
+                            <img src="https://cdn.discordapp.com/avatars/{{user.discordId}}/{{user.avatar}}.png?size=32" alt="{{user.username}}" class="w-8 h-8 rounded-full border-2 border-orange-400 group-hover:border-yellow-400 transition-colors shadow-lg">
                             {{/if}}
                             <span class="font-medium text-orange-400 group-hover:text-yellow-400 transition">{{user.username}}</span>
                         </a>
