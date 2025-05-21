@@ -17,13 +17,7 @@
                             {{#if user.avatar}}
                             <img src="{{user.avatar}}" alt="{{user.username}}" class="w-8 h-8 rounded-full border-2 border-orange-400 group-hover:border-yellow-400 transition-colors shadow-lg">
                             {{else}}
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-yellow-400 flex items-center justify-center text-white border-2 border-orange-400 group-hover:border-yellow-400 transition-colors shadow-lg">
-                                {{#if user.username}}
-                                    {{firstChar user.username}}
-                                {{else}}
-                                    U
-                                {{/if}}
-                            </div>
+                            <img src="/images/default-avatar.png" alt="Default Avatar" class="w-8 h-8 rounded-full border-2 border-orange-400 group-hover:border-yellow-400 transition-colors shadow-lg">
                             {{/if}}
                             <span class="font-medium text-orange-400 group-hover:text-yellow-400 transition">{{user.username}}</span>
                         </a>
