@@ -33,10 +33,10 @@
     <form method="POST" action="/dashboard/manage/{{guild.id}}/settings" class="mt-10">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Statistika Kanalı Seçimi -->
-        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transform hover:scale-105 transition duration-300 hover:shadow-orange-500/30 card-3d">
+        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition duration-300">
             <h2 class="text-xl font-semibold text-orange-400 mb-3">Statistika Kanalı Seçimi</h2>
             <p class="text-gray-400 mb-4">Statistikaların göndəriləcəyi kanalı seçin.</p>
-            <select name="statsChannelId" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none">
+            <select name="statsChannelId" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none focus:bg-white focus:text-gray-900">
                 <option value="" disabled {{#unless ../settings.statsChannelId}}selected{{/unless}}>Kanal seçin...</option>
                 {{#each channels}}
                     <option value="{{this.id}}" {{#if (eq this.id ../settings.statsChannelId)}}selected{{/if}}>#{{this.name}}</option>
@@ -45,10 +45,10 @@
         </div>
 
         <!-- Maaş Bildirim Kanalı (optional) -->
-        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transform hover:scale-105 transition duration-300 hover:shadow-orange-500/30 card-3d">
+        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition duration-300">
             <h2 class="text-xl font-semibold text-orange-400 mb-3">Maaş Bildirim Kanalı (optional)</h2>
             <p class="text-gray-400 mb-4">Maaş bildirimlərinin göndəriləcəyi kanalı seçin (istəyə bağlı).</p>
-            <select name="salaryChannelId" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none">
+            <select name="salaryChannelId" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none focus:bg-white focus:text-gray-900">
                 <option value="" disabled {{#if (and (ne ../settings.salaryChannelId "disable") (not ../settings.salaryChannelId))}}selected{{/if}}>Kanal seçin...</option>
                 <option value="disable" {{#if (eq "disable" ../settings.salaryChannelId)}}selected{{/if}}>Deaktiv Et</option>
                 {{#each channels}}
@@ -58,10 +58,10 @@
         </div>
 
         <!-- Prezident Rolu Seçimi -->
-        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transform hover:scale-105 transition duration-300 hover:shadow-orange-500/30 card-3d">
+        <div class="bg-gray-800/40 backdrop-blur-lg border border-white/10 rounded-xl p-6 shadow-xl transition duration-300">
             <h2 class="text-xl font-semibold text-orange-400 mb-3">Prezident Rolu Seçimi</h2>
             <p class="text-gray-400 mb-4">Serverdə prezident rolunu seçin.</p>
-            <select name="presidentRoleId" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none">
+            <select name="presidentRoleId" class="w-full bg-gray-700/50 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:bg-gray-700 focus:border-orange-500 mb-3 appearance-none focus:bg-white focus:text-gray-900">
                 <option value="" disabled {{#unless ../settings.presidentRoleId}}selected{{/unless}}>Rol seçin...</option>
                 {{#each roles}}
                     <option value="{{this.id}}" {{#if (eq this.id ../settings.presidentRoleId)}}selected{{/if}}>@{{this.name}}</option>
