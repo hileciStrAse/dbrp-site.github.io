@@ -27,6 +27,9 @@ app.engine('hbs', exphbs.engine({
         ne: function (v1, v2) { // 'ne' helper əlavə edildi
             return v1 !== v2;
         },
+        not: function (value) { // 'not' helper əlavə edildi
+            return !value;
+        },
         firstChar: function (str) {
             return str && str.length > 0 ? str.charAt(0).toUpperCase() : '';
         }
