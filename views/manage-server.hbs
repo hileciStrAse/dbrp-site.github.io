@@ -58,8 +58,8 @@
             </header>
             <p class="text-gray-400 mb-4">Maaş bildirimlərinin göndəriləcəyi kanalı seçin (istəyə bağlı).</p>
             <select name="salaryChannelId" class="w-full bg-gray-700/50 border-2 border-gray-600/50 text-white py-3 px-4 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 transition-all duration-200">
-                <option value="" disabled {{#if (and (ne ../settings.salaryChannelId \"disable\") (not ../settings.salaryChannelId))}}selected{{/if}}>Kanal seçin...</option>
-                <option value="disable" {{#if (eq \"disable\" ../settings.salaryChannelId)}}selected{{/if}}>Deaktiv Et</option>
+                <option value="" disabled {{#if (and (ne ../settings.salaryChannelId "disable") (not ../settings.salaryChannelId))}}selected{{/if}}>Kanal seçin...</option>
+                <option value="disable" {{#if (eq "disable" ../settings.salaryChannelId)}}selected{{/if}}>Deaktiv Et</option>
                 {{#each channels}}
                     <option value="{{this.id}}" {{#if (eq this.id ../settings.salaryChannelId)}}selected{{/if}}>#{{this.name}}</option>
                 {{/each}}
