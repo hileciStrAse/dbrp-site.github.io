@@ -36,6 +36,10 @@ app.engine('hbs', exphbs.engine({
         and: function (v1, v2) {
             return v1 && v2;
         }
+    },
+    runtimeOptions: {
+        allowProtoPropertiesByDefault: true,
+        allowProtoMethodsByDefault: true
     }
 }));
 app.set('view engine', 'hbs');

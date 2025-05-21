@@ -9,16 +9,33 @@
         <h2 class="text-2xl font-semibold text-orange-400 mb-4">Server Seçimi</h2>
         <p class="text-gray-400 mb-4">İdarə etmək istədiyiniz serveri seçin:</p>
         <div class="relative">
-            <select id="server-select" class="block w-full bg-gray-700/50 border border-gray-600 text-white py-3 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-gray-700 focus:border-orange-500 appearance-none shadow-md hover:border-orange-400 transition duration-200">
-                <option value="" disabled selected>Server seçin...</option>
-                {{#if guilds}}
-                    {{#each guilds}}
-                        <option value="{{this.id}}">{{this.name}}</option>
-                    {{/each}}
-                {{else}}
-                    <option value="" disabled>İdarə edə biləcəyiniz server tapılmadı.</option>
-                {{/if}}
-            </select>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {{#if guilds}}
+        {{#each guilds}}
+            <div class="server-card relative bg-gradient-to-br from-gray-800/40 to-gray-900/50 border border-white/10 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:border-orange-400 hover:shadow-xl hover:scale-[1.02] group" data-id="{{this.id}}">
+                <div class="flex items-center space-x-4">
+                    {{#if this.icon}}
+                        <img src="https://cdn.discordapp.com/icons/{{this.id}}/{{this.icon}}.png?size=128" alt="{{this.name}} icon" class="w-12 h-12 rounded-lg">
+                    {{else}}
+                        <div class="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center text-orange-400 text-2xl font-bold">
+                            {{firstChar this.name}}
+                        </div>
+                    {{/if}}
+                    <div>
+                        <h3 class="text-lg font-semibold text-orange-400 group-hover:text-yellow-400 transition-colors">{{this.name}}</h3>
+                        <p class="text-sm text-gray-400">{{this.memberCount}} üzv</p>
+                    </div>
+                </div>
+                <div class="absolute inset-0 border-2 border-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" style="background: linear-gradient(45deg, transparent 50%, rgba(249, 115, 22, 0.1))"></div>
+            </div>
+        {{/each}}
+    {{else}}
+        <div class="col-span-full text-center py-6 text-gray-400">
+            <i class="fas fa-server text-3xl mb-2"></i>
+            <p>İdarə edə biləcəyiniz server tapılmadı.</p>
+        </div>
+    {{/if}}
+</div>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
             </div>
