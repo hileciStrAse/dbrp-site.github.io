@@ -87,8 +87,8 @@ passport.use(new DiscordStrategy({
         );
         return done(null, user);
     } catch (err) {
-        console.error('Error in passport strategy:', err);
-        return done(err);
+        console.error('Error updating user in Discord strategy:', err);
+        return done(null, false, { message: 'Hesab məlumatlarınız yadda saxlanılarkən xəta baş verdi. Zəhmət olmasa, daha sonra yenidən cəhd edin.' });
     }
 }));
 
@@ -110,7 +110,8 @@ passport.deserializeUser(async function(id, done) {
 app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', 
     passport.authenticate('discord', { 
-        failureRedirect: '/login' 
+        failureRedirect: '/login', 
+        failureFlash: true // Flash mesajlarını aktivləşdir
     }), 
     function(req, res) {
         res.redirect('/dashboard'); // Uğurlu giriş zamanı dashboard-a yönləndir
