@@ -488,13 +488,15 @@ async function startServer() {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             tls: true,
-            tlsAllowInvalidCertificates: true
+            tlsAllowInvalidCertificates: true,
+            serverSelectionTimeoutMS: 5000, // Sunucu seçimi için zaman aşımı
+            socketTimeoutMS: 45000, // Soket zaman aşımı
+            family: 4 // IPv4'ü zorla
         }).then(() => {
             console.log('MongoDB-yə uğurla qoşuldu');
         }).catch(err => {
             console.error('MongoDB qoşulma xətası:', err);
         });
-        console.log('MongoDB-yə uğurla qoşuldu');
         
         // checkAndSeedCommands funksiyasını MongoDB bağlantısından sonra çağırın
         await checkAndSeedCommands(); 
