@@ -80,25 +80,38 @@ passport.use(new DiscordStrategy({
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     callbackURL: process.env.NODE_ENV === 'production' 
         ? process.env.DISCORD_REDIRECT_URI 
-        : process.env.LOCAL_REDIRECT_URI || 'http://dbrpbot.onrender.com/auth/discord/callback',
+        : process.env.LOCAL_REDIRECT_URI || 'http://localhost:3000/auth/discord/callback',
     scope: ['identify', 'guilds', 'guilds.members.read', 'email']
 }, async function(accessToken, refreshToken, profile, done) {
     try {
+        console.log('Discord OAuth profile received:', {
+            id: profile.id,
+            username: profile.username,
+            guilds: profile.guilds ? profile.guilds.length : 0
+        });
+        
+        if (!profile.id) {
+            console.error('No Discord ID in profile');
+            return done(null, false, { message: 'Discord profil məlumatları natamam.' });
+        }
+        
         let user = await User.findOneAndUpdate(
             { discordId: profile.id },
             {
-                username: profile.username,
-                discriminator: profile.discriminator,
+                username: profile.username || 'Unknown',
+                discriminator: profile.discriminator || '0000',
                 avatar: profile.avatar,
-                guilds: profile.guilds,
+                guilds: profile.guilds || [],
                 lastLogin: Date.now()
             },
             { upsert: true, new: true }
         );
+        
+        console.log('User saved/updated successfully:', user.username);
         return done(null, user);
     } catch (err) {
         console.error('Error updating user in Discord strategy:', err);
-        return done(null, false, { message: 'Hesab məlumatlarınız yadda saxlanılarkən xəta baş verdi. Zəhmət olmasa, daha sonra yenidən cəhd edin.' });
+        return done(err, null);
     }
 }));
 
@@ -110,8 +123,13 @@ passport.serializeUser(function(user, done) {
 passport.deserializeUser(async function(id, done) {
     try {
         const user = await User.findOne({ discordId: id });
+        if (!user) {
+            console.log('User not found during deserialization:', id);
+            return done(null, false);
+        }
         done(null, user); // Verilənlər bazasından tam istifadəçi məlumatını alırıq
     } catch (err) {
+        console.error('Error in deserializeUser:', err);
         done(err, null);
     }
 });
@@ -124,7 +142,19 @@ app.get('/auth/discord/callback',
         failureFlash: true // Flash mesajlarını aktivləşdir
     }), 
     function(req, res) {
-        res.redirect('/dashboard'); // Uğurlu giriş zamanı dashboard-a yönləndir
+        try {
+            console.log('Discord OAuth callback successful for user:', req.user?.username);
+            if (!req.user) {
+                console.error('No user object after authentication');
+                req.flash('error_msg', 'Giriş zamanı xəta baş verdi.');
+                return res.redirect('/login');
+            }
+            res.redirect('/dashboard'); // Uğurlu giriş zamanı dashboard-a yönləndir
+        } catch (error) {
+            console.error('Error in Discord callback:', error);
+            req.flash('error_msg', 'Giriş zamanı xəta baş verdi.');
+            res.redirect('/login');
+        }
     }
 );
 
@@ -208,16 +238,7 @@ app.get('/login', (req, res) => {
     });
 });
 
-app.get('/auth/discord', passport.authenticate('discord'));
-
-app.get('/auth/discord/callback', 
-    passport.authenticate('discord', { 
-        failureRedirect: '/login'
-    }), 
-    (req, res) => {
-        res.redirect('/dashboard');
-    }
-);
+// Duplicate routes removed - using the ones above with proper error handling
 
 app.get('/dashboard', checkAuth, (req, res) => {
     // İstifadəçinin admin olduğu serverləri filtrləyək (permissions check)
@@ -640,7 +661,28 @@ async function startServer() {
     }
 }
 
-startServer(); // Serveri başlat
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    
+    // If it's a Discord OAuth error
+    if (req.url.includes('/auth/discord/callback')) {
+        req.flash('error_msg', 'Discord ilə giriş zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.');
+        return res.redirect('/login');
+    }
+    
+    // General error handling
+    if (req.accepts('html')) {
+        res.status(500).render('error', {
+            title: 'Server Xətası',
+            message: 'Daxili server xətası baş verdi.',
+            error: process.env.NODE_ENV === 'development' ? err : {}
+        });
+    } else {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 app.get('/terms', (req, res) => {
     res.render('terms', {
         title: 'İstifadə Şərtləri'
@@ -652,3 +694,5 @@ app.get('/privacy', (req, res) => {
         title: 'Məxfilik Siyasəti'
     });
 });
+
+startServer(); // Serveri başlat
