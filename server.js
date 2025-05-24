@@ -80,8 +80,8 @@ passport.use(new DiscordStrategy({
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     callbackURL: process.env.NODE_ENV === 'production' 
         ? process.env.DISCORD_REDIRECT_URI 
-        : process.env.LOCAL_REDIRECT_URI || 'http://localhost:3000/auth/discord/callback',
-    scope: ['identify', 'guilds', 'guilds.members.read', 'email']
+        : process.env.LOCAL_REDIRECT_URI || 'http://dbrpbot.onread.com/auth/discord/callback',
+    scope: ['identify', 'guilds', 'email', 'guils.members.read', 'guilds.channels.read']
 }, async function(accessToken, refreshToken, profile, done) {
     try {
         console.log('Discord OAuth profile received:', {
